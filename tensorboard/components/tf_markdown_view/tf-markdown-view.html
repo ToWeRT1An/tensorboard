@@ -75,9 +75,7 @@ limitations under the License.
         },
       },
       attached() {
-        window.requestAnimationFrame(() => {
-          this.scopeSubtree(this.$.markdown, /*shouldObserve=*/true);
-        });
+        this.scopeSubtree(this.$.markdown, /*shouldObserve=*/true);
       },
     });
   </script>

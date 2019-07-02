@@ -32,9 +32,6 @@ from tensorboard.plugins.custom_scalar import layout_pb2
 from tensorboard.plugins.custom_scalar import summary
 from tensorboard.plugins.scalar import scalars_plugin
 from tensorboard.plugins.scalar import summary as scalar_summary
-from tensorboard.util import test_util
-
-tf.compat.v1.disable_v2_behavior()
 
 
 class CustomScalarsPluginTest(tf.test.TestCase):
@@ -81,7 +78,7 @@ class CustomScalarsPluginTest(tf.test.TestCase):
                 ]
             ),
             # A category with this name is also present in a layout for a
-            # different run (the logdir run) and also contains a duplicate chart
+            # different run (the logdir run)
             layout_pb2.Category(
                 title='cross entropy',
                 chart=[
@@ -95,28 +92,23 @@ class CustomScalarsPluginTest(tf.test.TestCase):
                                     upper='cross entropy upper'),
                             ],
                         )),
-                    layout_pb2.Chart(
-                        title='cross entropy',
-                        multiline=layout_pb2.MultilineChartContent(
-                            tag=[r'cross entropy'],
-                        )),
                 ]
             ),
         ]
     )
 
     # Generate test data.
-    with test_util.FileWriterCache.get(os.path.join(self.logdir, 'foo')) as writer:
+    with tf.summary.FileWriter(os.path.join(self.logdir, 'foo')) as writer:
       writer.add_summary(summary.pb(self.foo_layout))
       for step in range(4):
         writer.add_summary(scalar_summary.pb('squares', step * step), step)
 
-    with test_util.FileWriterCache.get(os.path.join(self.logdir, 'bar')) as writer:
+    with tf.summary.FileWriter(os.path.join(self.logdir, 'bar')) as writer:
       for step in range(3):
         writer.add_summary(scalar_summary.pb('increments', step + 1), step)
 
     # The '.' run lacks scalar data but has a layout.
-    with test_util.FileWriterCache.get(self.logdir) as writer:
+    with tf.summary.FileWriter(self.logdir) as writer:
       writer.add_summary(summary.pb(self.logdir_layout))
 
     self.plugin = self.createPlugin(self.logdir)
@@ -236,7 +228,7 @@ class CustomScalarsPluginTest(tf.test.TestCase):
   def testIsNotActiveDueToNoScalarsData(self):
     # Generate a directory with a layout but no scalars data.
     directory = os.path.join(self.logdir, 'no_scalars')
-    with test_util.FileWriterCache.get(directory) as writer:
+    with tf.summary.FileWriter(directory) as writer:
       writer.add_summary(summary.pb(self.logdir_layout))
 
     local_plugin = self.createPlugin(directory)

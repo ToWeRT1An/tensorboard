@@ -7,7 +7,7 @@ licenses(["notice"])  # Apache 2.0
 tf_web_library(
     name = "tf_histogram_dashboard",
     srcs = [
-        "histogramCore.js",
+        "histogramCore.ts",
         "tf-histogram-core.html",
         "tf-histogram-dashboard.html",
         "tf-histogram-loader.html",
@@ -32,6 +32,20 @@ tf_web_library(
         "@org_polymer_paper_button",
         "@org_polymer_paper_icon_button",
         "@org_polymer_paper_input",
+        "@org_polymer_paper_styles",
+    ],
+)
+
+tf_web_library(
+    name = "demo",
+    srcs = ["index.html"] + glob(["data/**"]),
+    path = "/tf-histogram-dashboard",
+    deps = [
+        ":tf_histogram_dashboard",
+        "//tensorboard/components/tf_backend",
+        "//tensorboard/components/tf_imports:d3",
+        "//tensorboard/components/tf_imports:webcomponentsjs",
+        "@org_polymer_iron_demo_helpers",
         "@org_polymer_paper_styles",
     ],
 )

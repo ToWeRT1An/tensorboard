@@ -108,7 +108,7 @@ from tensorboard import summary
 from tensorboard.plugins.custom_scalar import layout_pb2
 ...
 # This action does not have to be performed at every step, so the action is not
-# taken care of by an op in the graph. We only need to specify the layout once.
+# taken care of by an op in the graph. We only need to specify the layout once. 
 # We only need to specify the layout once (instead of per step).
 layout_summary = summary_lib.custom_scalar_pb(layout_pb2.Layout(
   category=[
@@ -129,7 +129,7 @@ layout_summary = summary_lib.custom_scalar_pb(layout_pb2.Layout(
                     lower='baz_lower/baz/scalar_summary',
                     upper='baz_upper/baz/scalar_summary'),
                 ],
-              )),
+              )), 
       ]),
     layout_pb2.Category(
       title='trig functions',
@@ -177,7 +177,7 @@ writer.add_summary(layout_summary)
                     smoothing-enabled="[[_smoothingEnabled]]"
                     smoothing-weight="[[_smoothingWeight]]"
                     tooltip-sorting-method="[[tooltipSortingMethod]]"
-                    ignore-y-outliers="[[_ignoreYOutliers]]"
+                    ignore-y-outliers="[[ignoreYOutliers]]"
                     show-download-links="[[_showDownloadLinks]]"
                     tag-regexes="[[chart.multiline.tag]]"
                   ></tf-custom-scalar-multi-line-chart-card>
@@ -189,8 +189,10 @@ writer.add_summary(layout_summary)
                     runs="[[_selectedRuns]]"
                     title="[[chart.title]]"
                     x-type="[[_xType]]"
+                    smoothing-enabled="[[_smoothingEnabled]]"
+                    smoothing-weight="[[_smoothingWeight]]"
                     tooltip-sorting-method="[[tooltipSortingMethod]]"
-                    ignore-y-outliers="[[_ignoreYOutliers]]"
+                    ignore-y-outliers="[[ignoreYOutliers]]"
                     show-download-links="[[_showDownloadLinks]]"
                     margin-chart-series="[[chart.margin.series]]"
                   ></tf-custom-scalar-margin-chart-card>
@@ -204,16 +206,26 @@ writer.add_summary(layout_summary)
 
     <style include="dashboard-style"></style>
     <style>
+      .center {
+        height: 100%;
+        padding: 10px 20px;
+        box-sizing: border-box;
+      }
       #tooltip-sorting {
-        align-items: center;
         display: flex;
         font-size: 14px;
-        margin-top: 15px;
+        margin-top: 5px;
+      }
+      #tooltip-sorting-label {
+        margin-top: 13px;
       }
       #tooltip-sorting paper-dropdown-menu {
         margin-left: 10px;
         --paper-input-container-focus-color: var(--tb-orange-strong);
         width: 105px;
+      }
+      #x-type-selector paper-button {
+        margin: 5px 3px;
       }
       .line-item {
         display: block;
@@ -248,16 +260,15 @@ writer.add_summary(layout_summary)
               {defaultValue: false, useLocalStorage: true}),
           observer: '_showDownloadLinksObserver',
         },
-        // Note that smoothing does not apply to margin charts.
-        _smoothingEnabled: {
-          type: Boolean,
-          computed: '_computeSmoothingEnabled(_smoothingWeight)',
-        },
         _smoothingWeight: {
           type: Number,
           notify: true,
           value: tf_storage.getNumberInitializer('_smoothingWeight', {defaultValue: 0.6}),
           observer: '_smoothingWeightObserver',
+        },
+        _smoothingEnabled: {
+          type: Boolean,
+          computed: '_computeSmoothingEnabled(_smoothingWeight)',
         },
         _ignoreYOutliers: {
           type: Boolean,
@@ -317,10 +328,7 @@ writer.add_summary(layout_summary)
         this._requestManager.request(url).then(handlePluginsListingResponse);
       },
       _reloadCharts() {
-        const charts =
-          this.querySelectorAll('tf-custom-scalar-margin-chart-card, ' +
-                                'tf-custom-scalar-multi-line-chart-card');
-        charts.forEach(chart => {
+        this.querySelectorAll('tf-custom-scalar-card').forEach(chart => {
           chart.reload();
         });
       },
@@ -383,6 +391,12 @@ writer.add_summary(layout_summary)
           delete this._openedCategories[pane.category.name];
         }
       },
+    });
+
+    tf_tensorboard.registerDashboard({
+      plugin: 'custom_scalars',
+      elementName: 'tf-custom-scalar-dashboard',
+      tabName: 'Custom Scalars',
     });
   </script>
 </dom-module>

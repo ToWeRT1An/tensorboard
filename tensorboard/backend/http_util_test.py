@@ -24,14 +24,13 @@ import gzip
 import struct
 
 import six
+import tensorflow as tf
 from werkzeug import test as wtest
 from werkzeug import wrappers
-
-from tensorboard import test as tb_test
 from tensorboard.backend import http_util
 
 
-class RespondTest(tb_test.TestCase):
+class RespondTest(tf.test.TestCase):
 
   def testHelloWorld(self):
     q = wrappers.Request(wtest.EnvironBuilder().get_environ())
@@ -198,4 +197,4 @@ def _bitflip(bs):
                   for i in range(len(bs)))
 
 if __name__ == '__main__':
-  tb_test.main()
+  tf.test.main()

@@ -64,7 +64,7 @@ tf-text-dashboard displays a dashboard that loads texts from a TensorFlow run.
         <template is="dom-if" if="[[!_dataNotFound]]">
           <tf-tag-filterer tag-filter="{{_tagFilter}}"></tf-tag-filterer>
           <template is="dom-repeat" items="[[_categories]]" as="category">
-            <tf-category-pane category="[[category]]" opened="[[_shouldOpen(index)]]">
+            <tf-category-pane category="[[category]]">
               <tf-paginated-view
                 items="[[category.items]]"
                 pages="{{category._pages}}"
@@ -128,9 +128,6 @@ tf-text-dashboard displays a dashboard that loads texts from a TensorFlow run.
           this._reloadTexts();
         });
       },
-      _shouldOpen(index) {
-        return index <= 2;
-      },
       _fetchTags() {
         const url = tf_backend.getRouter().pluginRoute('text', '/tags');
         return this._requestManager.request(url).then(runToTag => {
@@ -155,6 +152,11 @@ tf-text-dashboard displays a dashboard that loads texts from a TensorFlow run.
       _makeCategories(runToTag, selectedRuns, tagFilter, categoriesDomReady) {
         return tf_categorization_utils.categorizeRunTagCombinations(runToTag, selectedRuns, tagFilter);
       },
+    });
+
+    tf_tensorboard.registerDashboard({
+      plugin: 'text',
+      elementName: 'tf-text-dashboard',
     });
 
   </script>

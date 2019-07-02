@@ -8,36 +8,23 @@ licenses(["notice"])  # Apache 2.0
 tf_web_library(
     name = "tf_backend",
     srcs = [
-        "backend.js",
-        "baseStore.js",
-        "canceller.js",
-        "environmentStore.js",
-        "experimentsStore.js",
-        "requestManager.js",
-        "router.js",
-        "runsStore.js",
+        "backend.ts",
+        "canceller.ts",
+        "requestManager.ts",
+        "router.ts",
+        "runsStore.ts",
         "tf-backend.html",
-        "urlPathHelpers.js",
+        "urlPathHelpers.ts",
     ],
     path = "/tf-backend",
     visibility = ["//visibility:public"],
     deps = [
-        ":type",
         "//tensorboard/components/tf_imports:d3",
         "//tensorboard/components/tf_imports:lodash",
         "//tensorboard/components/tf_imports:plottable",
         "//tensorboard/components/tf_imports:polymer",
         "//tensorboard/components/vz_sorting",
     ],
-)
-
-tf_web_library(
-    name = "type",
-    srcs = [
-        "type.js",
-    ],
-    path = "/tf-backend",
-    visibility = ["//visibility:public"],
 )
 
 tensorboard_webcomponent_library(
@@ -50,3 +37,4 @@ tensorboard_webcomponent_library(
         "//third_party/javascript/polymer/v1/polymer:lib",
     ],
 )
+

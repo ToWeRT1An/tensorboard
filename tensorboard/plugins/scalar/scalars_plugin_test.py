@@ -27,20 +27,16 @@ from six import StringIO
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from tensorboard.backend import application
 from tensorboard.backend.event_processing import plugin_event_accumulator as event_accumulator  # pylint: disable=line-too-long
 from tensorboard.backend.event_processing import plugin_event_multiplexer as event_multiplexer  # pylint: disable=line-too-long
 from tensorboard.plugins import base_plugin
-from tensorboard.plugins.core import core_plugin
 from tensorboard.plugins.scalar import scalars_plugin
 from tensorboard.plugins.scalar import summary
-from tensorboard.util import test_util
 
 
-@test_util.run_v1_only('Requires contrib for db writer or uses op.Placeholder')
 class ScalarsPluginTest(tf.test.TestCase):
 
-  _STEPS = 9
+  _STEPS = 99
 
   _LEGACY_SCALAR_TAG = 'ancient-values'
   _SCALAR_TAG = 'simple-values'
@@ -72,41 +68,6 @@ class ScalarsPluginTest(tf.test.TestCase):
     context = base_plugin.TBContext(logdir=self.logdir, multiplexer=multiplexer)
     self.plugin = scalars_plugin.ScalarsPlugin(context)
 
-  def set_up_db(self):
-    self.db_path = os.path.join(self.get_temp_dir(), 'db.db')
-    self.db_uri = 'sqlite:' + self.db_path
-    db_module, db_connection_provider = application.get_database_info(
-        self.db_uri)
-    context = base_plugin.TBContext(
-        db_module=db_module,
-        db_connection_provider=db_connection_provider,
-        db_uri=self.db_uri)
-    self.core_plugin = core_plugin.CorePlugin(context)
-    self.plugin = scalars_plugin.ScalarsPlugin(context)
-
-  def generate_run_to_db(self, experiment_name, run_name):
-    tf.compat.v1.reset_default_graph()
-
-    global_step = tf.compat.v1.placeholder(tf.int64)
-    db_writer = tf.contrib.summary.create_db_writer(
-        db_uri=self.db_path,
-        experiment_name=experiment_name,
-        run_name=run_name,
-        user_name='user')
-
-    scalar_ops = None
-    with db_writer.as_default(), tf.contrib.summary.always_record_summaries():
-      tf.contrib.summary.scalar(self._SCALAR_TAG, 42, step=global_step)
-      flush_op = tf.contrib.summary.flush(db_writer._resource)
-
-    with tf.compat.v1.Session() as sess:
-      sess.run(tf.contrib.summary.summary_writer_initializer_op())
-      summaries = tf.contrib.summary.all_summary_ops()
-      for step in xrange(self._STEPS):
-        feed_dict = {global_step: step}
-        sess.run(summaries, feed_dict=feed_dict)
-      sess.run(flush_op)
-
   def testRoutesProvided(self):
     """Tests that the plugin offers the correct routes."""
     self.set_up_with_runs([self._RUN_WITH_SCALARS])
@@ -115,29 +76,30 @@ class ScalarsPluginTest(tf.test.TestCase):
     self.assertIsInstance(routes['/tags'], collections.Callable)
 
   def generate_run(self, run_name):
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
-    placeholder = tf.compat.v1.placeholder(tf.float32, shape=[3])
+    tf.reset_default_graph()
+    sess = tf.Session()
+    placeholder = tf.placeholder(tf.float32, shape=[3])
 
     if run_name == self._RUN_WITH_LEGACY_SCALARS:
-      tf.compat.v1.summary.scalar(self._LEGACY_SCALAR_TAG, tf.reduce_mean(input_tensor=placeholder))
+      tf.summary.scalar(self._LEGACY_SCALAR_TAG, tf.reduce_mean(placeholder))
     elif run_name == self._RUN_WITH_SCALARS:
-      summary.op(self._SCALAR_TAG, tf.reduce_sum(input_tensor=placeholder),
+      summary.op(self._SCALAR_TAG, tf.reduce_sum(placeholder),
                  display_name=self._DISPLAY_NAME,
                  description=self._DESCRIPTION)
     elif run_name == self._RUN_WITH_HISTOGRAM:
-      tf.compat.v1.summary.histogram(self._HISTOGRAM_TAG, placeholder)
+      tf.summary.histogram(self._HISTOGRAM_TAG, placeholder)
     else:
       assert False, 'Invalid run name: %r' % run_name
-    summ = tf.compat.v1.summary.merge_all()
+    summ = tf.summary.merge_all()
 
     subdir = os.path.join(self.logdir, run_name)
-    with test_util.FileWriterCache.get(subdir) as writer:
-      writer.add_graph(sess.graph)
-      for step in xrange(self._STEPS):
-        feed_dict = {placeholder: [1 + step, 2 + step, 3 + step]}
-        s = sess.run(summ, feed_dict=feed_dict)
-        writer.add_summary(s, global_step=step)
+    writer = tf.summary.FileWriter(subdir)
+    writer.add_graph(sess.graph)
+    for step in xrange(self._STEPS):
+      feed_dict = {placeholder: [1 + step, 2 + step, 3 + step]}
+      s = sess.run(summ, feed_dict=feed_dict)
+      writer.add_summary(s, global_step=step)
+    writer.close()
 
   def test_index(self):
     self.set_up_with_runs([self._RUN_WITH_LEGACY_SCALARS,
@@ -165,12 +127,12 @@ class ScalarsPluginTest(tf.test.TestCase):
                            self._RUN_WITH_HISTOGRAM])
     if should_work:
       (data, mime_type) = self.plugin.scalars_impl(
-          tag_name, run_name, None, scalars_plugin.OutputFormat.JSON)
+          tag_name, run_name, scalars_plugin.OutputFormat.JSON)
       self.assertEqual('application/json', mime_type)
       self.assertEqual(len(data), self._STEPS)
     else:
       with self.assertRaises(KeyError):
-        self.plugin.scalars_impl(self._SCALAR_TAG, run_name, None,
+        self.plugin.scalars_impl(self._SCALAR_TAG, run_name,
                                  scalars_plugin.OutputFormat.JSON)
 
   def _test_scalars_csv(self, run_name, tag_name, should_work=True):
@@ -179,7 +141,7 @@ class ScalarsPluginTest(tf.test.TestCase):
                            self._RUN_WITH_HISTOGRAM])
     if should_work:
       (data, mime_type) = self.plugin.scalars_impl(
-          tag_name, run_name, None, scalars_plugin.OutputFormat.CSV)
+          tag_name, run_name, scalars_plugin.OutputFormat.CSV)
       self.assertEqual('text/csv', mime_type)
       s = StringIO(data)
       reader = csv.reader(s)
@@ -187,7 +149,7 @@ class ScalarsPluginTest(tf.test.TestCase):
       self.assertEqual(len(list(reader)), self._STEPS)
     else:
       with self.assertRaises(KeyError):
-        self.plugin.scalars_impl(self._SCALAR_TAG, run_name, None,
+        self.plugin.scalars_impl(self._SCALAR_TAG, run_name,
                                  scalars_plugin.OutputFormat.CSV)
 
   def test_scalars_json_with_legacy_scalars(self):
@@ -232,41 +194,6 @@ class ScalarsPluginTest(tf.test.TestCase):
                            self._RUN_WITH_HISTOGRAM])
     self.assertTrue(self.plugin.is_active())
 
-  def test_scalars_db_without_exp(self):
-    self.set_up_db()
-    self.generate_run_to_db('exp1', self._RUN_WITH_SCALARS)
-
-    (data, mime_type) = self.plugin.scalars_impl(
-        self._SCALAR_TAG, self._RUN_WITH_SCALARS, None,
-        scalars_plugin.OutputFormat.JSON)
-    self.assertEqual('application/json', mime_type)
-    # When querying DB-based backend without an experiment id, it returns all
-    # scalars without an experiment id. Such scalar can only be generated using
-    # raw SQL queries though.
-    self.assertEqual(len(data), 0)
-
-  def test_scalars_db_filter_by_experiment(self):
-    self.set_up_db()
-    self.generate_run_to_db('exp1', self._RUN_WITH_SCALARS)
-    all_exps = self.core_plugin.list_experiments_impl()
-    exp1 = next((x for x in all_exps if x.get('name') == 'exp1'), {})
-
-    (data, mime_type) = self.plugin.scalars_impl(
-        self._SCALAR_TAG, self._RUN_WITH_SCALARS, exp1.get('id'),
-        scalars_plugin.OutputFormat.JSON)
-    self.assertEqual('application/json', mime_type)
-    self.assertEqual(len(data), self._STEPS)
-
-  def test_scalars_db_no_match(self):
-    self.set_up_db()
-    self.generate_run_to_db('exp1', self._RUN_WITH_SCALARS)
-
-    # experiment_id is a number but we passed a string here.
-    (data, mime_type) = self.plugin.scalars_impl(
-        self._SCALAR_TAG, self._RUN_WITH_SCALARS, 'random_exp_id',
-        scalars_plugin.OutputFormat.JSON)
-    self.assertEqual('application/json', mime_type)
-    self.assertEqual(len(data), 0)
 
 if __name__ == '__main__':
   tf.test.main()

@@ -27,19 +27,16 @@ import functools
 import json
 
 from six.moves import queue
-
 import tensorflow as tf
+from tensorflow.python import debug as tf_debug
+from tensorflow.core.debug import debug_service_pb2
+from tensorflow.python.debug.lib import grpc_debug_server
+
 from tensorboard.plugins.debugger import comm_channel as comm_channel_lib
 from tensorboard.plugins.debugger import debug_graphs_helper
 from tensorboard.plugins.debugger import tensor_helper
 from tensorboard.plugins.debugger import tensor_store as tensor_store_lib
-from tensorboard.util import tb_logging
-from tensorflow.core.debug import debug_service_pb2
-from tensorflow.python import debug as tf_debug
-from tensorflow.python.debug.lib import debug_data
-from tensorflow.python.debug.lib import grpc_debug_server
 
-logger = tb_logging.get_logger()
 
 RunKey = collections.namedtuple(
     'RunKey', ['input_names', 'output_names', 'target_nodes'])
@@ -62,13 +59,6 @@ def _comm_metadata(run_key, timestamp):
   }
 
 
-UNINITIALIZED_TAG = 'Uninitialized'
-UNSUPPORTED_TAG = 'Unsupported'
-NA_TAG = 'N/A'
-
-STRING_ELEMENT_MAX_LEN = 40
-
-
 def _comm_tensor_data(device_name,
                       node_name,
                       maybe_base_expanded_node_name,
@@ -77,15 +67,6 @@ def _comm_tensor_data(device_name,
                       tensor_value,
                       wall_time):
   """Create a dict() as the outgoing data in the tensor data comm route.
-
-  Note: The tensor data in the comm route does not include the value of the
-  tensor in its entirety in general. Only if a tensor satisfies the following
-  conditions will its entire value be included in the return value of this
-  method:
-  1. Has a numeric data type (e.g., float32, int32) and has fewer than 5
-     elements.
-  2. Is a string tensor and has fewer than 5 elements. Each string element is
-     up to 40 bytes.
 
   Args:
     device_name: Name of the device that the tensor is on.
@@ -100,30 +81,17 @@ def _comm_tensor_data(device_name,
     A dict representing the tensor data.
   """
   output_slot = int(output_slot)
-  logger.info(
+  tf.logging.info(
       'Recording tensor value: %s, %d, %s', node_name, output_slot, debug_op)
-  tensor_values = None
-  if isinstance(tensor_value, debug_data.InconvertibleTensorProto):
-    if not tensor_value.initialized:
-      tensor_dtype = UNINITIALIZED_TAG
-      tensor_shape = UNINITIALIZED_TAG
-    else:
-      tensor_dtype = UNSUPPORTED_TAG
-      tensor_shape = UNSUPPORTED_TAG
-    tensor_values = NA_TAG
+  tensor_dtype = str(tensor_value.dtype)
+  tensor_shape = tensor_value.shape
+  # The /comm endpoint should respond with tensor values only if the tensor is
+  # small enough. Otherwise, the detailed values sould be queried through a
+  # dedicated tensor_data that supports slicing.
+  if tensor_helper.numel(tensor_shape) < 5:
+    _, _, tensor_values = tensor_helper.array_view(tensor_value)
   else:
-    tensor_dtype = tensor_helper.translate_dtype(tensor_value.dtype)
-    tensor_shape = tensor_value.shape
-
-    # The /comm endpoint should respond with tensor values only if the tensor is
-    # small enough. Otherwise, the detailed values sould be queried through a
-    # dedicated tensor_data that supports slicing.
-    if tensor_helper.numel(tensor_shape) < 5:
-      _, _, tensor_values = tensor_helper.array_view(tensor_value)
-      if tensor_dtype == 'string' and tensor_value is not None:
-        tensor_values = tensor_helper.process_buffers_for_display(
-            tensor_values, limit=STRING_ELEMENT_MAX_LEN)
-
+    tensor_values = None
   return {
       'type': 'tensor',
       'timestamp': wall_time,
@@ -306,11 +274,9 @@ class InteractiveDebuggerDataStreamHandler(
     self._outgoing_channel.put(_comm_metadata(self._run_key, event.wall_time))
 
     # Wait for acknowledgement from client. Blocks until an item is got.
-    logger.info('on_core_metadata_event() waiting for client ack (meta)...')
+    tf.logging.info('on_core_metadata_event() waiting for client ack (meta)...')
     self._incoming_channel.get()
-    logger.info('on_core_metadata_event() client ack received (meta).')
-
-    # TODO(cais): If eager mode, this should return something to yield.
+    tf.logging.info('on_core_metadata_event() client ack received (meta).')
 
   def _add_graph_def(self, device_name, graph_def):
     self._run_states.add_graph(
@@ -353,13 +319,13 @@ class InteractiveDebuggerDataStreamHandler(
       event: The Event proto to be processed.
     """
     if not event.summary.value:
-      logger.info('The summary of the event lacks a value.')
+      tf.logging.info('The summary of the event lacks a value.')
       return None
 
     # The node name property in the event proto is actually a watch key, which
     # is a concatenation of several pieces of data.
     watch_key = event.summary.value[0].node_name
-    tensor_value = debug_data.load_tensor_from_event(event)
+    tensor_value = tf.make_ndarray(event.summary.value[0].tensor)
     device_name = _extract_device_name_from_event(event)
     node_name, output_slot, debug_op = (
         event.summary.value[0].node_name.split(':'))
@@ -372,14 +338,14 @@ class InteractiveDebuggerDataStreamHandler(
         device_name, node_name, maybe_base_expanded_node_name, output_slot,
         debug_op, tensor_value, event.wall_time))
 
-    logger.info('on_value_event(): waiting for client ack (tensors)...')
+    tf.logging.info('on_value_event(): waiting for client ack (tensors)...')
     self._incoming_channel.get()
-    logger.info('on_value_event(): client ack received (tensor).')
+    tf.logging.info('on_value_event(): client ack received (tensor).')
 
     # Determine if the particular debug watch key is in the current list of
     # breakpoints. If it is, send an EventReply() to unblock the debug op.
     if self._is_debug_node_in_breakpoints(event.summary.value[0].node_name):
-      logger.info('Sending empty EventReply for breakpoint: %s',
+      tf.logging.info('Sending empty EventReply for breakpoint: %s',
                       event.summary.value[0].node_name)
       # TODO(cais): Support receiving and sending tensor value from front-end.
       return debug_service_pb2.EventReply()
@@ -391,116 +357,6 @@ class InteractiveDebuggerDataStreamHandler(
     return (node_name, output_slot,
             debug_op) in self._run_states.get_breakpoints()
 
-
-# TODO(cais): Consider moving to a seperate python module.
-class SourceManager(object):
-  """Manages source files and tracebacks involved in the debugged TF program.
-
-  """
-
-  def __init__(self):
-    # A dict mapping file path to file content as a list of strings.
-    self._source_file_content = dict()
-    # A dict mapping file path to host name.
-    self._source_file_host = dict()
-    # A dict mapping file path to last modified timestamp.
-    self._source_file_last_modified = dict()
-    # A dict mapping file path to size in bytes.
-    self._source_file_bytes = dict()
-    # Keeps track f the traceback of the latest graph version.
-    self._graph_traceback = None
-    self._graph_version = -1
-
-  def add_debugged_source_file(self, debugged_source_file):
-    """Add a DebuggedSourceFile proto."""
-    # TODO(cais): Should the key include a host name, for certain distributed
-    #   cases?
-    key = debugged_source_file.file_path
-    self._source_file_host[key] = debugged_source_file.host
-    self._source_file_last_modified[key] = debugged_source_file.last_modified
-    self._source_file_bytes[key] = debugged_source_file.bytes
-    self._source_file_content[key] = debugged_source_file.lines
-
-  def add_graph_traceback(self, graph_version, graph_traceback):
-    if graph_version > self._graph_version:
-      self._graph_traceback = graph_traceback
-      self._graph_version = graph_version
-
-  def get_paths(self):
-    """Get the paths to all available source files."""
-    return list(self._source_file_content.keys())
-
-  def get_content(self, file_path):
-    """Get the content of a source file.
-
-    # TODO(cais): Maybe support getting a range of lines by line number.
-
-    Args:
-      file_path: Path to the source file.
-    """
-    return self._source_file_content[file_path]
-
-  def get_op_traceback(self, op_name):
-    """Get the traceback of an op in the latest version of the TF graph.
-
-    Args:
-      op_name: Name of the op.
-
-    Returns:
-      Creation traceback of the op, in the form of a list of 2-tuples:
-        (file_path, lineno)
-
-    Raises:
-      ValueError: If the op with the given name cannot be found in the latest
-        version of the graph that this SourceManager instance has received, or
-        if this SourceManager instance has not received any graph traceback yet.
-    """
-    if not self._graph_traceback:
-      raise ValueError('No graph traceback has been received yet.')
-    for op_log_entry in self._graph_traceback.log_entries:
-      if op_log_entry.name == op_name:
-        return self._code_def_to_traceback_list(op_log_entry.code_def)
-    raise ValueError(
-        'No op named "%s" can be found in the graph of the latest version '
-        ' (%d).' % (op_name, self._graph_version))
-
-  def get_file_tracebacks(self, file_path):
-    """Get the lists of ops created at lines of a specified source file.
-
-    Args:
-      file_path: Path to the source file.
-
-    Returns:
-      A dict mapping line number to a list of 2-tuples,
-        `(op_name, stack_position)`
-      `op_name` is the name of the name of the op whose creation traceback
-        includes the line.
-      `stack_position` is the position of the line in the op's creation
-        traceback, represented as a 0-based integer.
-
-    Raises:
-      ValueError: If `file_path` does not point to a source file that has been
-        received by this instance of `SourceManager`.
-    """
-    if file_path not in self._source_file_content:
-      raise ValueError(
-          'Source file of path "%s" has not been received by this instance of '
-          'SourceManager.' % file_path)
-
-    lineno_to_op_names_and_stack_position = dict()
-    for op_log_entry in self._graph_traceback.log_entries:
-      for stack_pos, trace in enumerate(op_log_entry.code_def.traces):
-        if self._graph_traceback.id_to_string[trace.file_id] == file_path:
-          if trace.lineno not in lineno_to_op_names_and_stack_position:
-            lineno_to_op_names_and_stack_position[trace.lineno] = []
-          lineno_to_op_names_and_stack_position[trace.lineno].append(
-              (op_log_entry.name, stack_pos))
-    return lineno_to_op_names_and_stack_position
-
-  def _code_def_to_traceback_list(self, code_def):
-    return [
-        (self._graph_traceback.id_to_string[trace.file_id], trace.lineno)
-        for trace in code_def.traces]
 
 
 class InteractiveDebuggerDataServer(
@@ -524,7 +380,6 @@ class InteractiveDebuggerDataServer(
     self._outgoing_channel = comm_channel_lib.CommChannel()
     self._run_states = RunStates(breakpoints_func=lambda: self.breakpoints)
     self._tensor_store = tensor_store_lib.TensorStore()
-    self._source_manager = SourceManager()
 
     curried_handler_constructor = functools.partial(
         InteractiveDebuggerDataStreamHandler,
@@ -533,17 +388,14 @@ class InteractiveDebuggerDataServer(
     grpc_debug_server.EventListenerBaseServicer.__init__(
         self, receive_port, curried_handler_constructor)
 
-  def SendTracebacks(self, request, context):
-    self._source_manager.add_graph_traceback(request.graph_version,
-                                             request.graph_traceback)
-    return debug_service_pb2.EventReply()
+  def start_the_debugger_data_receiving_server(self):
+    """Starts the HTTP server for receiving health pills at `receive_port`.
 
-  def SendSourceFiles(self, request, context):
-    # TODO(cais): Handle case in which the size of the request is greater than
-    #   the 4-MB gRPC limit.
-    for source_file in request.source_files:
-      self._source_manager.add_debugged_source_file(source_file)
-    return debug_service_pb2.EventReply()
+    After this method is called, health pills issued to host:receive_port
+    will be stored by this object. Calling this method also creates a file
+    within the log directory for storing health pill summary events.
+    """
+    self.run_server()
 
   def get_graphs(self, run_key, debug=False):
     return self._run_states.get_graphs(run_key, debug=debug)
@@ -587,50 +439,6 @@ class InteractiveDebuggerDataServer(
                                     time_indices=time_indices,
                                     slicing=slicing,
                                     mapping=mapping)
-
-  def query_source_file_paths(self):
-    """Query the source files involved in the current debugged TF program.
-
-    Returns:
-      A `list` of file paths. The files that belong to the TensorFlow Python
-        library itself are *not* included.
-    """
-    return self._source_manager.get_paths()
-
-  def query_source_file_content(self, file_path):
-    """Query the content of a given source file.
-
-    # TODO(cais): Allow query only a range of the source lines.
-
-    Returns:
-      The source lines as a list of `str`.
-    """
-    return list(self._source_manager.get_content(file_path))
-
-  def query_op_traceback(self, op_name):
-    """Query the tracebacks of ops in a TensorFlow graph.
-
-    Returns:
-      TODO(cais):
-    """
-    return self._source_manager.get_op_traceback(op_name)
-
-  def query_file_tracebacks(self, file_path):
-    """Query the lists of ops created at lines of a given source file.
-
-    Args:
-      file_path: Path to the source file to get the tracebacks for.
-
-    Returns:
-      A `dict` mapping line number in the specified source file to a list of
-        2-tuples:
-          `(op_name, stack_position)`.
-        `op_name` is the name of the name of the op whose creation traceback
-          includes the line.
-        `stack_position` is the position of the line in the op's creation
-          traceback, represented as a 0-based integer.
-    """
-    return self._source_manager.get_file_tracebacks(file_path)
 
   def dispose(self):
     """Disposes of this object. Call only after this is done being used."""

@@ -87,9 +87,8 @@ Example
 }
 
 #progress-msg {
-  margin-bottom: 5px;
-  white-space: pre-wrap;
   width: 400px;
+  margin-bottom: 5px;
 }
 
 paper-progress {
@@ -171,7 +170,6 @@ paper-progress {
               all-steps-mode-enabled="{{allStepsModeEnabled}}"
               specific-health-pill-step="{{specificHealthPillStep}}"
               health-pill-step-index="{{healthPillStepIndex}}"
-              compat-node-title="[[compatNodeTitle]]"
     ></tf-graph-info>
   </div>
   <div class="context-menu"></div>
@@ -234,10 +232,6 @@ Polymer({
     selectedNode: {
       type: String,
       notify: true,
-    },
-    compatNodeTitle: {
-      type: String,
-      value: 'TPU Compatibility',
     },
     // A function with signature EdgeThicknessFunction that computes the
     // thickness of a given edge.

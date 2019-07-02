@@ -26,41 +26,29 @@ from tensorboard.plugins.beholder import im_util
 from tensorboard.plugins.beholder.file_system_tools import read_pickle,\
   write_pickle, write_file
 from tensorboard.plugins.beholder.shared_config import PLUGIN_NAME, TAG_NAME,\
-  SUMMARY_FILENAME, DEFAULT_CONFIG, CONFIG_FILENAME, SUMMARY_COLLECTION_KEY_NAME
+  SUMMARY_FILENAME, DEFAULT_CONFIG, CONFIG_FILENAME
 from tensorboard.plugins.beholder import video_writing
 from tensorboard.plugins.beholder.visualizer import Visualizer
-from tensorboard.util import tb_logging
-
-
-logger = tb_logging.get_logger()
 
 
 class Beholder(object):
 
   def __init__(self, logdir):
+    self.video_writer = None
+
     self.PLUGIN_LOGDIR = logdir + '/plugins/' + PLUGIN_NAME
 
-    self.is_recording = False
-    self.video_writer = video_writing.VideoWriter(
-        self.PLUGIN_LOGDIR,
-        outputs=[
-            video_writing.FFmpegVideoOutput,
-            video_writing.PNGVideoOutput])
-
-    self.frame_placeholder = tf.compat.v1.placeholder(tf.uint8, [None, None, None])
-    self.summary_op = tf.compat.v1.summary.tensor_summary(TAG_NAME,
-                                                self.frame_placeholder,
-                                                collections=[
-                                                    SUMMARY_COLLECTION_KEY_NAME
-                                                ])
+    self.frame_placeholder = tf.placeholder(tf.uint8, [None, None, None])
+    self.summary_op = tf.summary.tensor_summary(TAG_NAME,
+                                                self.frame_placeholder)
 
     self.last_image_shape = []
     self.last_update_time = time.time()
     self.config_last_modified_time = -1
     self.previous_config = dict(DEFAULT_CONFIG)
 
-    if not tf.io.gfile.exists(self.PLUGIN_LOGDIR + '/config.pkl'):
-      tf.io.gfile.makedirs(self.PLUGIN_LOGDIR)
+    if not tf.gfile.Exists(self.PLUGIN_LOGDIR + '/config.pkl'):
+      tf.gfile.MakeDirs(self.PLUGIN_LOGDIR)
       write_pickle(DEFAULT_CONFIG, '{}/{}'.format(self.PLUGIN_LOGDIR,
                                                   CONFIG_FILENAME))
 
@@ -108,7 +96,7 @@ class Beholder(object):
         final_image = self.visualizer.build_frame(arrays)
 
     elif config['values'] == 'trainable_variables':
-      arrays = [session.run(x) for x in tf.compat.v1.trainable_variables()]
+      arrays = [session.run(x) for x in tf.trainable_variables()]
       final_image = self.visualizer.build_frame(arrays)
 
     if len(final_image.shape) == 2:
@@ -136,21 +124,29 @@ class Beholder(object):
 
 
   def _update_recording(self, frame, config):
-    '''Adds a frame to the current video output.'''
+    '''Adds a frame to the video using ffmpeg if possible. If not, writes
+    individual frames as png files in a directory.
+    '''
     # pylint: disable=redefined-variable-type
-    should_record = config['is_recording']
+    is_recording = config['is_recording']
+    filename = self.PLUGIN_LOGDIR + '/video-{}.mp4'.format(time.time())
 
-    if should_record:
-      if not self.is_recording:
-        self.is_recording = True
-        logger.info(
-            'Starting recording using %s',
-            self.video_writer.current_output().name())
+    if is_recording:
+      if self.video_writer is None or frame.shape != self.video_writer.size:
+        try:
+          self.video_writer = video_writing.FFMPEG_VideoWriter(filename,
+                                                               frame.shape,
+                                                               15)
+        except OSError:
+          message = ('Either ffmpeg is not installed, or something else went '
+                     'wrong. Saving individual frames to disk instead.')
+          print(message)
+          self.video_writer = video_writing.PNGWriter(self.PLUGIN_LOGDIR,
+                                                      frame.shape)
       self.video_writer.write_frame(frame)
-    elif self.is_recording:
-      self.is_recording = False
-      self.video_writer.finish()
-      logger.info('Finished recording')
+    elif not is_recording and self.video_writer is not None:
+      self.video_writer.close()
+      self.video_writer = None
 
 
   # TODO: blanket try and except for production? I don't someone's script to die
@@ -188,7 +184,7 @@ class Beholder(object):
     Returns: the gradient tensors and the train_step op.
     '''
     if var_list is None:
-      var_list = tf.compat.v1.trainable_variables()
+      var_list = tf.trainable_variables()
 
     grads_and_vars = optimizer.compute_gradients(loss, var_list=var_list)
     grads = [pair[0] for pair in grads_and_vars]
@@ -196,27 +192,29 @@ class Beholder(object):
     return grads, optimizer.apply_gradients(grads_and_vars)
 
 
-class BeholderHook(tf.estimator.SessionRunHook):
-  """SessionRunHook implementation that runs Beholder every step.
+class BeholderHook(tf.train.SessionRunHook):
+  """SessionRunHook implementation that run Beholder every step.
 
-  Convenient when using tf.train.MonitoredSession:
+  Convinient when using tf.train.MonitoredSession:
   ```python
-  beholder_hook = BeholderHook(LOG_DIRECTORY)
-  with MonitoredSession(..., hooks=[beholder_hook]) as sess:
-    sess.run(train_op)
+  beholder_hook = BeholderHook('MY_LOG_DIR')
+  with MonitoredSession(session_creator=ChiefSessionCreator(...),
+                        hooks=[beholder_hook]) as sess:
+    while not sess.should_stop():
+      sess.run(train_op)
   ```
   """
   def __init__(self, logdir):
     """Creates new Hook instance
 
     Args:
-      logdir: Directory where Beholder should write data.
+      logdir: Directory where Beholder is to write data.
     """
     self._logdir = logdir
-    self.beholder = None
+    self.visualizer = None
 
   def begin(self):
-    self.beholder = Beholder(self._logdir)
+    self.visualizer = Beholder(self._logdir)
 
   def after_run(self, run_context, unused_run_values):
-    self.beholder.update(run_context.session)
+    self.visualizer.update(run_context.session)

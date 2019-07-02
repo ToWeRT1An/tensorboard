@@ -22,15 +22,12 @@ import os
 import threading
 
 import six
-from six.moves import queue, xrange  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 from tensorboard.backend.event_processing import directory_watcher
 from tensorboard.backend.event_processing import plugin_event_accumulator as event_accumulator  # pylint: disable=line-too-long
 from tensorboard.backend.event_processing import io_wrapper
-from tensorboard.util import tb_logging
 
-
-logger = tb_logging.get_logger()
 
 class EventMultiplexer(object):
   """An `EventMultiplexer` manages access to multiple `EventAccumulator`s.
@@ -74,8 +71,7 @@ class EventMultiplexer(object):
                run_path_map=None,
                size_guidance=None,
                tensor_size_guidance=None,
-               purge_orphaned_data=True,
-               max_reload_threads=None):
+               purge_orphaned_data=True):
     """Constructor for the `EventMultiplexer`.
 
     Args:
@@ -90,11 +86,8 @@ class EventMultiplexer(object):
         `event_accumulator.EventAccumulator` for details.
       purge_orphaned_data: Whether to discard any events that were "orphaned" by
         a TensorFlow restart.
-      max_reload_threads: The max number of threads that TensorBoard can use
-        to reload runs. Each thread reloads one run at a time. If not provided,
-        reloads runs serially (one after another).
     """
-    logger.info('Event Multiplexer initializing.')
+    tf.logging.info('Event Multiplexer initializing.')
     self._accumulators_mutex = threading.Lock()
     self._accumulators = {}
     self._paths = {}
@@ -103,13 +96,12 @@ class EventMultiplexer(object):
                            event_accumulator.DEFAULT_SIZE_GUIDANCE)
     self._tensor_size_guidance = tensor_size_guidance
     self.purge_orphaned_data = purge_orphaned_data
-    self._max_reload_threads = max_reload_threads or 1
     if run_path_map is not None:
-      logger.info('Event Multplexer doing initialization load for %s',
+      tf.logging.info('Event Multplexer doing initialization load for %s',
                       run_path_map)
       for (run, path) in six.iteritems(run_path_map):
         self.AddRun(path, run)
-    logger.info('Event Multiplexer done initializing')
+    tf.logging.info('Event Multiplexer done initializing')
 
   def AddRun(self, path, name=None):
     """Add a run to the multiplexer.
@@ -135,11 +127,11 @@ class EventMultiplexer(object):
     with self._accumulators_mutex:
       if name not in self._accumulators or self._paths[name] != path:
         if name in self._paths and self._paths[name] != path:
-          # TODO(@decentralion) - Make it impossible to overwrite an old path
+          # TODO(@dandelionmane) - Make it impossible to overwrite an old path
           # with a new path (just give the new path a distinct name)
-          logger.warn('Conflict for name %s: old path %s, new path %s',
+          tf.logging.warning('Conflict for name %s: old path %s, new path %s',
                              name, self._paths[name], path)
-        logger.info('Constructing EventAccumulator for %s', path)
+        tf.logging.info('Constructing EventAccumulator for %s', path)
         accumulator = event_accumulator.EventAccumulator(
             path,
             size_guidance=self._size_guidance,
@@ -179,71 +171,38 @@ class EventMultiplexer(object):
     Returns:
       The `EventMultiplexer`.
     """
-    logger.info('Starting AddRunsFromDirectory: %s', path)
-    for subdir in io_wrapper.GetLogdirSubdirectories(path):
-      logger.info('Adding run from directory %s', subdir)
+    tf.logging.info('Starting AddRunsFromDirectory: %s', path)
+    for subdir in GetLogdirSubdirectories(path):
+      tf.logging.info('Adding run from directory %s', subdir)
       rpath = os.path.relpath(subdir, path)
       subname = os.path.join(name, rpath) if name else rpath
       self.AddRun(subdir, name=subname)
-    logger.info('Done with AddRunsFromDirectory: %s', path)
+    tf.logging.info('Done with AddRunsFromDirectory: %s', path)
     return self
 
   def Reload(self):
     """Call `Reload` on every `EventAccumulator`."""
-    logger.info('Beginning EventMultiplexer.Reload()')
+    tf.logging.info('Beginning EventMultiplexer.Reload()')
     self._reload_called = True
     # Build a list so we're safe even if the list of accumulators is modified
     # even while we're reloading.
     with self._accumulators_mutex:
       items = list(self._accumulators.items())
-    items_queue = queue.Queue()
-    for item in items:
-      items_queue.put(item)
 
-    # Methods of built-in python containers are thread-safe so long as the GIL
-    # for the thread exists, but we might as well be careful.
     names_to_delete = set()
-    names_to_delete_mutex = threading.Lock()
-
-    def Worker():
-      """Keeps reloading accumulators til none are left."""
-      while True:
-        try:
-          name, accumulator = items_queue.get(block=False)
-        except queue.Empty:
-          # No more runs to reload.
-          break
-
-        try:
-          accumulator.Reload()
-        except (OSError, IOError) as e:
-          logger.error('Unable to reload accumulator %r: %s', name, e)
-        except directory_watcher.DirectoryDeletedError:
-          with names_to_delete_mutex:
-            names_to_delete.add(name)
-        finally:
-          items_queue.task_done()
-
-    if self._max_reload_threads > 1:
-      num_threads = min(
-          self._max_reload_threads, len(items))
-      logger.info('Starting %d threads to reload runs', num_threads)
-      for i in xrange(num_threads):
-        thread = threading.Thread(target=Worker, name='Reloader %d' % i)
-        thread.daemon = True
-        thread.start()
-      items_queue.join()
-    else:
-      logger.info(
-          'Reloading runs serially (one after another) on the main '
-          'thread.')
-      Worker()
+    for name, accumulator in items:
+      try:
+        accumulator.Reload()
+      except (OSError, IOError) as e:
+        tf.logging.error("Unable to reload accumulator '%s': %s", name, e)
+      except directory_watcher.DirectoryDeletedError:
+        names_to_delete.add(name)
 
     with self._accumulators_mutex:
       for name in names_to_delete:
-        logger.warn('Deleting accumulator %r', name)
+        tf.logging.warning("Deleting accumulator '%s'", name)
         del self._accumulators[name]
-    logger.info('Finished with EventMultiplexer.Reload()')
+    tf.logging.info('Finished with EventMultiplexer.Reload()')
     return self
 
   def PluginAssets(self, plugin_name):
@@ -436,7 +395,7 @@ class EventMultiplexer(object):
         the given run.
 
     Returns:
-      A `SummaryMetadata` protobuf.
+      A `tf.SummaryMetadata` protobuf.
     """
     accumulator = self.GetAccumulator(run)
     return accumulator.SummaryMetadata(tag)
@@ -473,3 +432,17 @@ class EventMultiplexer(object):
     """
     with self._accumulators_mutex:
       return self._accumulators[run]
+
+
+def GetLogdirSubdirectories(path):
+  """Returns subdirectories with event files on path."""
+  if tf.gfile.Exists(path) and not tf.gfile.IsDirectory(path):
+    raise ValueError('GetLogdirSubdirectories: path exists and is not a '
+                     'directory, %s' % path)
+
+  # ListRecursively just yields nothing if the path doesn't exist.
+  return (
+      subdir
+      for (subdir, files) in io_wrapper.ListRecursively(path)
+      if list(filter(event_accumulator.IsTensorFlowEventsFile, files))
+  )

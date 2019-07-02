@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../paper-button/paper-button.html">
 <link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
@@ -27,18 +26,13 @@ limitations under the License.
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../tf-dashboard-common/tensorboard-color.html">
 <link rel="import" href="../tf-graph-common/tf-graph-common.html">
-<link rel="import" href="../tf-graph-node-search/tf-graph-node-search.html">
 
 <dom-module id="tf-graph-controls">
 <template>
 <style>
 :host {
-  color: gray;
-  display: flex;
-  flex-direction: column;
   font-size: 12px;
-  width: 100%;
-
+  color: gray;
   --paper-font-subhead: {
     font-size: 14px;
     color: gray;
@@ -62,7 +56,7 @@ paper-button[raised].keyboard-focus {
 
 .run-dropdown {
   --paper-input-container: {
-    padding: 8px 0 8px 10px;
+    padding: 9px 0 0 25px;
   };
 }
 
@@ -83,17 +77,18 @@ table td {
 }
 
 .allcontrols {
-  padding: 0 20px 20px;
-  flex-grow: 1;
-  overflow-y: auto;
+  width: 188px;
+  padding: 0 30px;
 }
 
 .legend-holder {
   background: #e9e9e9;
   border-top: 1px solid #ccc;
-  box-sizing: border-box;
   color: #555;
-  padding: 15px 20px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 15px 23px;
   width: 100%;
 }
 
@@ -205,24 +200,10 @@ svg.icon {
   stroke: var(--tb-graph-faded);
 }
 
-#unfilled-rect {
-  stroke: #a6a6a6;
-}
-
-.devices-checkbox input {
-  text-align: left;
-  vertical-align: middle
-}
-
-.control-holder .icon-button {
-  font-size: 14px;
-  margin: 0 -5px;
-  padding: 5px;
-}
-
 .button-text {
-  padding-left: 20px;
   text-transform: none;
+  padding: 8px 18px 0 18px;
+  font-size: 14px
 }
 
 .upload-button {
@@ -232,9 +213,10 @@ svg.icon {
   margin-top: 4px;
 }
 
-.button-icon {
-  width: 26px;
-  height: 26px;
+.iconbutton {
+  padding: 2px;
+  width: 30px;
+  height: 30px;
   color: var(--paper-orange-500);
 }
 
@@ -245,9 +227,8 @@ svg.icon {
 }
 
 .allcontrols .control-holder {
-  clear: both;
   display: flex;
-  justify-content: space-between;
+  clear: both;
 }
 
 .allcontrols .control-holder paper-radio-group {
@@ -274,17 +255,9 @@ table.tf-graph-controls td.input-element-table-data {
   padding: 0 0 0 20px;
 }
 
-.spacer {
-  flex-grow: 1;
-}
-
-.color-text {
-  overflow: hidden;
-}
-
 /** Override inline styles that suppress pointer events for disabled buttons. Otherwise, the */
 /*  tooltips do not appear. */
-paper-radio-group paper-radio-button {
+#color-by-radio-group paper-radio-button {
   pointer-events: auto !important;
 }
 
@@ -297,16 +270,6 @@ paper-radio-group paper-radio-button {
 
 .legend-clarifier paper-tooltip {
   width: 150px;
-}
-
-/** Otherwise, polymer UI controls appear atop node search. */
-tf-graph-node-search {
-  z-index: 1;
-  width: 100%;
-}
-
-paper-dropdown-menu {
-  flex-grow: 1;
 }
 </style>
 <svg width="0" height="0">
@@ -322,35 +285,27 @@ paper-dropdown-menu {
        <use xmlns:xlink="http://www.w3.org/1999/xlink"
             xlink:href="#legend-rect"/>
      </g>
-     <g id="unfilled-rect">
-       <use xmlns:xlink="http://www.w3.org/1999/xlink"
-            xlink:href="#legend-rect"/>
-     </g>
   </defs>
 </svg>
 <div class="allcontrols">
   <div class="control-holder">
-    <tf-graph-node-search
-      selected-node="{{selectedNode}}"
-      render-hierarchy="[[renderHierarchy]]"></tf-graph-node-search>
-  </div>
-  <div class="control-holder">
-    <paper-button class="icon-button" on-click="fit" alt="Fit to screen">
-      <iron-icon icon="aspect-ratio" class="button-icon"></iron-icon>
-      <span class="button-text">Fit to Screen</span>
+    <paper-icon-button icon="aspect-ratio" class="iconbutton" on-click="fit" alt="Fit to screen">
+    </paper-icon-button>
+    <paper-button class="button-text" on-click="fit">Fit to screen
     </paper-button>
   </div>
   <div class="control-holder">
-    <paper-button class="icon-button" on-click="download" alt="Download PNG">
-      <iron-icon icon="file-download" class="button-icon"></iron-icon>
-      <span class="button-text">Download PNG</span>
+    <paper-icon-button icon="file-download" class="iconbutton" on-click="download" alt="Download PNG">
+    </paper-icon-button>
+    <paper-button class="button-text" on-click="download">Download PNG
     </paper-button>
-    <a href="#" id="graphdownload" class="title" download="graph.png"></a>
+    <a href="#" id="graphdownload" class="title" download="graph.png">
+    </a>
   </div>
   <div class="control-holder runs">
     <div class="title">Run <span class="counter">([[datasets.length]])</span></div>
-    <paper-dropdown-menu no-label-float no-animations noink horizontal-align="left" class="run-dropdown">
-      <paper-menu class="dropdown-content" selected="{{_selectedRunIndex}}" slot="dropdown-content">
+    <paper-dropdown-menu no-label-float no-animations noink class="run-dropdown">
+      <paper-menu id="select" class="dropdown-content" selected="{{selectedDataset}}" slot="dropdown-content">
         <template is="dom-repeat" items="[[datasets]]">
           <paper-item>[[item.name]]</paper-item>
         </template>
@@ -359,12 +314,13 @@ paper-dropdown-menu {
   </div>
   <template is="dom-if" if="[[showSessionRunsDropdown]]">
     <div class="control-holder">
-      <div class="title">Tag <span class="counter">([[_numTags(datasets, _selectedRunIndex)]])</span></div>
-      <paper-dropdown-menu no-label-float no-animations horizontal-align="left" noink class="run-dropdown">
-        <paper-menu class="dropdown-content" selected="{{_selectedTagIndex}}" slot="dropdown-content">
-          <template is="dom-repeat" items="[[_getTags(datasets, _selectedRunIndex)]]">
-            <paper-item>[[item.displayName]]</paper-item>
+      <div class="title">Session runs <span class="counter">([[_numSessionRuns(metadataTags)]])</span></div>
+      <paper-dropdown-menu no-label-float no-animations noink class="run-dropdown">
+        <paper-menu id="select" class="dropdown-content" selected="{{selectedMetadataTag}}" slot="dropdown-content">
+          <template is="dom-repeat" items="[[metadataTags]]">
+            <paper-item>[[item.tag]]</paper-item>
           </template>
+          <paper-item>None</paper-item>
         </paper-menu>
       </paper-dropdown-menu>
     </div>
@@ -372,41 +328,16 @@ paper-dropdown-menu {
   <template is="dom-if" if="[[showUploadButton]]">
     <div class="control-holder">
       <div class="title">Upload</div>
-      <paper-button raised class="upload-button"
-          on-click="_getFile"
-          title="Upload a graph pbtxt file to view the graph">
-        Choose File
-      </paper-button>
+      <paper-button raised class="text-button upload-button"
+          on-click="_getFile">Choose File</paper-button>
       <div class="hidden-input">
-        <input
-            type="file"
-            id="file"
-            name="file"
-            on-change="_updateFileInput"
-            accept=".pbtxt" />
+        <input type="file" id="file" name="file" on-change="_updateFileInput" />
       </div>
     </div>
   </template>
   <div class="control-holder">
-    <paper-radio-group selected="{{_selectedGraphType}}">
-      <!-- Note that the name has to match that of tf.graph.SelectionType. -->
-      <paper-radio-button name="op_graph"
-          disabled="[[_getSelectionOpGraphDisabled(datasets, _selectedRunIndex, _selectedTagIndex)]]"
-      >Graph</paper-radio-button>
-      <paper-radio-button name="conceptual_graph"
-          disabled="[[_getSelectionConceptualGraphDisabled(datasets, _selectedRunIndex, _selectedTagIndex)]]"
-      >Conceptual Graph</paper-radio-button>
-      <paper-radio-button name="profile"
-          disabled="[[_getSelectionProfileDisabled(datasets, _selectedRunIndex, _selectedTagIndex)]]"
-      >Profile</paper-radio-button>
-    </paper-radio-group>
-  </div>
-  <div class="control-holder">
-    <div>
-      <paper-toggle-button id="trace-inputs" class="title">
-        Trace inputs
-      </paper-toggle-button>
-    </div>
+    <paper-toggle-button id="trace-inputs"></paper-toggle-button>
+    <div class="title">Trace inputs</div>
   </div>
   <template is="dom-if" if="[[healthPillsFeatureEnabled]]">
     <div class="control-holder">
@@ -416,7 +347,7 @@ paper-dropdown-menu {
   </template>
   <div class="control-holder">
     <div class="title">Color</div>
-    <paper-radio-group selected="{{colorBy}}">
+    <paper-radio-group id="color-by-radio-group" selected="{{colorBy}}">
       <paper-radio-button name="structure">Structure</paper-radio-button>
 
       <paper-radio-button name="device">Device</paper-radio-button>
@@ -426,7 +357,7 @@ paper-dropdown-menu {
                           disabled="[[!_xlaClustersProvided(renderHierarchy)]]">
         XLA Cluster
       </paper-radio-button>
-      <paper-tooltip animation-delay="0" for="xla-cluster-radio-button" position="right" offset="0">
+      <paper-tooltip animation-delay="0" for="xla-cluster-radio-button" position="right">
         Coloring by XLA cluster is only enabled if at least 1 op specifies an XLA cluster.
       </paper-tooltip>
 
@@ -435,7 +366,7 @@ paper-dropdown-menu {
                           disabled="[[!stats]]">
         Compute time
       </paper-radio-button>
-      <paper-tooltip animation-delay="0" for="compute-time-radio-button" position="right" offset="0">
+      <paper-tooltip animation-delay="0" for="compute-time-radio-button" position="right">
         Coloring by compute time is only enabled if the RunMetadata proto is passed to the
         FileWriter when a specific session is run.
       </paper-tooltip>
@@ -445,7 +376,7 @@ paper-dropdown-menu {
                           disabled="[[!stats]]">
         Memory
       </paper-radio-button>
-      <paper-tooltip animation-delay="0" for="memory-radio-button" position="right" offset="0">
+      <paper-tooltip animation-delay="0" for="memory-radio-button" position="right">
         Coloring by memory is only enabled if the RunMetadata proto is passed to the
         FileWriter when a specific session is run.
       </paper-tooltip>
@@ -454,12 +385,11 @@ paper-dropdown-menu {
                           name="op_compatibility">
         TPU Compatibility
       </paper-radio-button>
-      <paper-tooltip animation-delay="0" for="tpu-compatibility-radio-button" position="right" offset="0">
+      <paper-tooltip animation-delay="0" for="tpu-compatibility-radio-button" position="right">
         Coloring by whether an operation is compatible for the TPU device.
       </paper-tooltip>
 
     </paper-radio-group>
-    <span class="spacer"></span>
   </div>
   <div>
     <template is="dom-if" if="[[_isGradientColoring(stats, colorBy)]]">
@@ -482,16 +412,24 @@ paper-dropdown-menu {
       <br style="clear: both">
       <div>Devices included in stats:</div>
       <div class="deviceList">
-        <template is="dom-repeat" items="[[_currentDevices]]">
-          <div class="color-legend-row devices-checkbox">
-            <span><input type="checkbox" value$="[[item.device]]" checked$="[[item.used]]" on-click="_deviceCheckboxClicked"/></span>
-            <span>[[item.suffix]]</span>
-            <template is="dom-if" if="[[item.ignoredMsg]]">
-              <paper-icon-button icon="help" class="help-icon"></paper-icon-button>
-              <paper-tooltip position="right" offset="0" animation-delay="0">[[item.ignoredMsg]]</paper-tooltip>
-            </template>
-          </div>
+        <table>
+        <template is="dom-repeat" items="[[_getDevices(devicesForStats)]]">
+          <tr>
+            <td>
+              <input type="checkbox" value$="[[item.device]]" checked$="[[item.used]]" on-click="_deviceCheckboxClicked"/>
+            </td>
+            <td>
+              <div>
+                <span>[[item.suffix]]</span>
+                <template is="dom-if" if="[[item.ignoredMsg]]">
+                  <paper-icon-button icon="help" class="help-icon"></paper-icon-button>
+                  <paper-tooltip position="right" animation-delay="0">[[item.ignoredMsg]]</paper-tooltip>
+                </template>
+              </div>
+            </td>
+          </tr>
         </template>
+        </table>
       </div>
     </template>
     <template is="dom-if" if="[[_equals(colorBy, 'structure')]]">
@@ -512,16 +450,22 @@ paper-dropdown-menu {
       </div>
     </template>
     <template is="dom-if" if="[[_equals(colorBy, 'device')]]">
-      <div>
-        <template is="dom-repeat" items="[[_currentDeviceParams]]">
-          <div class="color-legend-row">
-            <svg>
-              <use xmlns:xlink="http://www.w3.org/1999/xlink"
-                   xlink:href="#unfilled-rect" x="0" y="0" style="fill:[[item.color]]"/>
-            </svg>
-            <span class="color-legend-value">[[item.device]]</span>
-          </div>
-        </template>
+      <div class="color-text">
+        <div class="deviceList">
+          <table>
+          <template is="dom-repeat" items="[[colorByParams.device]]">
+            <tr>
+              <td style$="[[_getBackgroundColor(item.color)]]">
+                <div class="colorBox"></div>
+              </td>
+              <td>
+                <div>[[item.device]]</div>
+              </td>
+            </tr>
+          </template>
+          </table>
+        </div>
+        <br/>
         <div class="color-legend-row">
           <svg>
             <use xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -532,16 +476,22 @@ paper-dropdown-menu {
       </div>
     </template>
     <template is="dom-if" if="[[_equals(colorBy, 'xla_cluster')]]">
-      <div>
-        <template is="dom-repeat" items="[[_currentXlaClusterParams]]">
-          <div class="color-legend-row">
-            <svg>
-              <use xmlns:xlink="http://www.w3.org/1999/xlink"
-                   xlink:href="#unfilled-rect" x="0" y="0" style="fill:[[item.color]]"/>
-            </svg>
-            <span class="color-legend-value">[[item.xla_cluster]]</span>
-          </div>
-        </template>
+      <div class="color-text">
+        <div class="xlaClusterList">
+          <table>
+          <template is="dom-repeat" items="[[colorByParams.xla_cluster]]">
+            <tr>
+              <td style$="[[_getBackgroundColor(item.color)]]">
+                <div class="colorBox"></div>
+              </td>
+              <td>
+                <div>[[item.xla_cluster]]</div>
+              </td>
+            </tr>
+          </template>
+          </table>
+        </div>
+        <br/>
         <div class="color-legend-row">
           <svg>
             <use xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -581,199 +531,454 @@ paper-dropdown-menu {
       </div>
     </template>
   </div>
-</div>
-<div class="legend-holder">
-  <paper-icon-button
-    icon="[[_getToggleLegendIcon(_legendOpened)]]"
-    on-click="_toggleLegendOpen"
-    class="toggle-legend-button">
-  </paper-icon-button>
-  <span class="toggle-legend-text">
-    [[_getToggleText(_legendOpened)]]
-  </span>
-  <iron-collapse opened="[[_legendOpened]]">
-    <div>
-      <table>
-        <tr>
-          <td><div class="title">Graph</div></td>
-          <td>(* = expandable)</td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon">
-              <rect transform="translate(3, 1)" height="14" width="35"
-                  rx="5" ry="5"/>
-            </svg>
-          </td>
-          <td>
-            Namespace<span class="gray">*</span>
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Encapsulates a set of nodes. Namespace is hierarchical and based on scope.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon" preserveAspectRatio="xMinYMid meet"
-                viewBox="0 0 10 10">
-              <use xlink:href="#op-node-stamp" fill="white" stroke="#ccc" x="9.5"
-                y="6" />
-            </svg>
-          </td>
-          <td>
-            OpNode
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Node that performs an operation. These nodes cannot expand.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon" height="15px" preserveAspectRatio="xMinYMid meet"
-                viewBox="0 0 12 12">
-              <use xlink:href="#op-series-horizontal-stamp" fill="white"
-                  stroke="#ccc" x="2" y="2"/>
-            </svg>
-          </td>
-          <td>
-            Unconnected series<span class="gray">*</span>
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Sequence of numbered nodes that are not connected to each other.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon" height="15px"
-                preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
-              <use xlink:href="#op-series-vertical-stamp"
-                  fill="white" stroke="#ccc" x="2" y="2"/>
-            </svg>
-          </td>
-          <td>
-            Connected series<span class="gray">*</span>
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Sequence of numbered nodes that are connected to each other.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon">
-              <circle fill="white" stroke="#848484" cx="10" cy="10" r="5"/>
-            </svg>
-          </td>
-          <td>
-            Constant
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Node that outputs a constant value.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="image-icon" viewBox="0 0 12 12" width="24" height="24">
-              <use x="0" y="0" class="image-icon" xlink:href="#summary-icon"/>
-            </svg>
-          </td>
-          <td>
-            Summary
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Node that collects data for visualization within TensorBoard.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon" height="15px"
-                preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
-              <defs>
-                <marker id="dataflow-arrowhead-legend" fill="#bbb" markerWidth="10"
-                    markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">
-                  <path d="M 0,0 L 10,5 L 0,10 C 3,7 3,3 0,0"/>
-                </marker>
-              </defs>
-              <path marker-end="url(#dataflow-arrowhead-legend)"
-                    stroke="#bbb" d="M2 9 l 29 0"
-                    stroke-linecap="round" />
-            </svg>
-          </td>
-          <td>
-            Dataflow edge
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Edge showing the data flow between operations. Edges flow upwards unless arrowheads specify otherwise.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon" height="15px"
-                preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
-              <path stroke="#bbb"
-                d="M2 9 l 29 0" stroke-linecap="round" stroke-dasharray="2, 2" />
-            </svg>
-          </td>
-          <td>
-            Control dependency edge
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Edge showing the control dependency between operations.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <svg class="icon" height="15px"
-                preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
-              <defs>
-                <marker id="reference-arrowhead-legend" fill="#FFB74D" markerWidth="10"
-                    markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">
-                  <path d="M 0,0 L 10,5 L 0,10 C 3,7 3,3 0,0"/>
-                </marker>
-              </defs>
-              <path marker-end="url(#reference-arrowhead-legend)"
-                    stroke="#FFB74D" d="M2 9 l 29 0"
-                    stroke-linecap="round" />
-            </svg>
-          </td>
-          <td>
-            Reference edge
-            <div class="legend-clarifier">
-              <span>?</span>
-              <paper-tooltip animation-delay="0" position="right" offset="0">
-                Edge showing that the outgoing operation node can mutate the incoming tensor.
-              </paper-tooltip>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </div>
-  </iron-collapse>
+
+  <div class="legend-holder">
+    <paper-icon-button
+      icon="[[_getToggleLegendIcon(_legendOpened)]]"
+      on-click="_toggleLegendOpen"
+      class="toggle-legend-button">
+    </paper-icon-button>
+    <span class="toggle-legend-text">
+      [[_getToggleText(_legendOpened)]]
+    </span>
+    <iron-collapse opened="[[_legendOpened]]">
+      <div>
+        <table>
+          <tr>
+            <td><div class="title">Graph</div></td>
+            <td>(* = expandable)</td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon">
+                <rect transform="translate(3, 1)" height="14" width="35"
+                    rx="5" ry="5"/>
+              </svg>
+            </td>
+            <td>
+              Namespace<span class="gray">*</span>
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Encapsulates a set of nodes. Namespace is hierarchical and based on scope.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon" preserveAspectRatio="xMinYMid meet"
+                  viewBox="0 0 10 10">
+                <use xlink:href="#op-node-stamp" fill="white" stroke="#ccc" x="9.5"
+                  y="6" />
+              </svg>
+            </td>
+            <td>
+              OpNode
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Node that performs an operation. These nodes cannot expand.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon" height="15px" preserveAspectRatio="xMinYMid meet"
+                  viewBox="0 0 12 12">
+                <use xlink:href="#op-series-horizontal-stamp" fill="white"
+                    stroke="#ccc" x="2" y="2"/>
+              </svg>
+            </td>
+            <td>
+              Unconnected series<span class="gray">*</span>
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Sequence of numbered nodes that are not connected to each other.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon" height="15px"
+                  preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
+                <use xlink:href="#op-series-vertical-stamp"
+                    fill="white" stroke="#ccc" x="2" y="2"/>
+              </svg>
+            </td>
+            <td>
+              Connected series<span class="gray">*</span>
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Sequence of numbered nodes that are connected to each other.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon">
+                <circle fill="white" stroke="#848484" cx="10" cy="10" r="5"/>
+              </svg>
+            </td>
+            <td>
+              Constant
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Node that outputs a constant value.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="image-icon" viewBox="0 0 12 12" width="24" height="24">
+                <use x="0" y="0" class="image-icon" xlink:href="#summary-icon"/>
+              </svg>
+            </td>
+            <td>
+              Summary
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Node that collects data for visualization within TensorBoard.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon" height="15px"
+                  preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
+                <defs>
+                  <marker id="dataflow-arrowhead-legend" fill="#bbb" markerWidth="10"
+                      markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">
+                    <path d="M 0,0 L 10,5 L 0,10 C 3,7 3,3 0,0"/>
+                  </marker>
+                </defs>
+                <path marker-end="url(#dataflow-arrowhead-legend)"
+                      stroke="#bbb" d="M2 9 l 29 0"
+                      stroke-linecap="round" />
+              </svg>
+            </td>
+            <td>
+              Dataflow edge
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Edge showing the data flow between operations. Edges flow upwards unless arrowheads specify otherwise.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon" height="15px"
+                  preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
+                <path stroke="#bbb"
+                  d="M2 9 l 29 0" stroke-linecap="round" stroke-dasharray="2, 2" />
+              </svg>
+            </td>
+            <td>
+              Control dependency edge
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Edge showing the control dependency between operations.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <svg class="icon" height="15px"
+                  preserveAspectRatio="xMinYMid meet" viewBox="0 0 15 15">
+                <defs>
+                  <marker id="reference-arrowhead-legend" fill="#FFB74D" markerWidth="10"
+                      markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">
+                    <path d="M 0,0 L 10,5 L 0,10 C 3,7 3,3 0,0"/>
+                  </marker>
+                </defs>
+                <path marker-end="url(#reference-arrowhead-legend)"
+                      stroke="#FFB74D" d="M2 9 l 29 0"
+                      stroke-linecap="round" />
+              </svg>
+            </td>
+            <td>
+              Reference edge
+              <div class="legend-clarifier">
+                <span>?</span>
+                <paper-tooltip animation-delay="0" position="right">
+                  Edge showing that the outgoing operation node can mutate the incoming tensor.
+                </paper-tooltip>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </iron-collapse>
+  </div>
 </div>
 </template>
 </dom-module>
 
-<script src="tf-graph-controls.js"></script>
+<script>
+(function() { // Private scope.
+/**
+ * Stats from device names that match these regexes will be excluded by default.
+ * The user can still turn on a device by selecting the checkbox in the device list.
+ */
+var DEVICE_NAMES_EXCLUDE = [
+  {
+    regex: /gpu:[0-9]+$/,
+    msg: 'Excluded by default since this is a CPU thread setting up GPU kernels.'
+  }
+];
+
+Polymer({
+  is: 'tf-graph-controls',
+  properties: {
+    // Public API.
+    stats: {
+      value: null,
+      type: Object,
+      observer: '_statsChanged'
+    },
+    devicesForStats: {
+      value: null,
+      type: Object,
+      notify: true,
+      readonly: true,
+    },
+    colorBy: {
+      type: String,
+      value: 'structure',
+      notify: true,
+      readonly: true
+    },
+    colorByParams: Object,
+    datasets: {
+      type: Array,
+      observer: '_datasetsChanged'
+    },
+    renderHierarchy: {
+      type: Object,
+      notify: true,
+    },
+    metadataTags: {
+      type: Array,
+      computed: '_getMetadataTags(selectedDataset, datasets)'
+    },
+    selectedDataset: {
+      type: Number,
+      notify: true,
+      value: 0,
+      observer: '_selectedDatasetChanged'
+    },
+    selectedFile: {
+      type: Object,
+      notify: true
+    },
+    selectedMetadataTag: {
+      type: Number,
+      notify: true,
+      value: -1
+    },
+    _currentGradientParams: {
+      type: Object,
+      computed: '_getCurrentGradientParams(colorByParams, colorBy)'
+    },
+    showSessionRunsDropdown: {
+      type: Boolean,
+      value: true
+    },
+    showUploadButton: {
+      type: Boolean,
+      value: true
+    },
+    // This stores whether the feature for showing health pills is enabled in the first place.
+    healthPillsFeatureEnabled: Boolean,
+    // This stores whether to show health pills. Only relevant if healthPillsFeatureEnabled. The
+    // user can toggle this value.
+    healthPillsToggledOn: {
+      type: Boolean,
+      notify: true,
+    },
+    _legendOpened: {
+      type: Boolean,
+      value: true,
+    },
+  },
+  listeners: {
+    'trace-inputs.change': '_traceInputToggleChanged'
+  },
+  _traceInputToggleChanged: function(event) {
+    // Flip the state of the trace inputs flag.
+    this.renderHierarchy.traceInputs = event.target.active;
+    tf.graph.scene.node.traceInputs(this.renderHierarchy);
+  },
+  _xlaClustersProvided: function(renderHierarchy) {
+    return renderHierarchy &&
+        renderHierarchy.hierarchy &&
+        renderHierarchy.hierarchy.xlaClusters.length > 0;
+  },
+  _statsChanged: function(stats) {
+    if (stats == null) {
+      return;
+    }
+    var devicesForStats = {};
+    var devices = _.each(stats.dev_stats, function(d) {
+      // Avoid device names that are ignored by default.
+      var exclude = _.some(DEVICE_NAMES_EXCLUDE, function(rule) {
+        return rule.regex.test(d.device);
+      });
+      if (!exclude) {
+        devicesForStats[d.device] = true;
+      }
+    });
+    this.set('devicesForStats', devicesForStats);
+  },
+  _getDevices: function(devicesForStats) {
+    var devices = _.map(this.stats.dev_stats, function(d) {
+      return d.device;
+    });
+    // Devices names can be long so we remove the longest common prefix
+    // before showing the devices in a list.
+    var suffixes = tf.graph.util.removeCommonPrefix(devices);
+    return _.map(devices, function(device, i) {
+      var ignoredMsg = null;
+      _.each(DEVICE_NAMES_EXCLUDE, function(rule) {
+        if (rule.regex.test(device)) {
+          ignoredMsg = rule.msg;
+        }
+      });
+      return {
+        device: device,
+        suffix: suffixes[i],
+        used: devicesForStats[device],
+        ignoredMsg: ignoredMsg
+      };
+    });
+  },
+  _deviceCheckboxClicked: function(checkbox) {
+    // Update the device map.
+    var devicesForStats = _.extend({}, this.devicesForStats);
+    var device = checkbox.target.value;
+    if (checkbox.target.checked) {
+      devicesForStats[device] = true;
+    } else {
+      delete devicesForStats[device];
+    }
+    this.set('devicesForStats', devicesForStats);
+  },
+  _numSessionRuns: function(metadataTags) {
+    return metadataTags != null ? metadataTags.length : 0;
+  },
+  _getBackgroundColor: function(color) {
+    return 'background-color:' + color;
+  },
+  fit: function() {
+    document.querySelector('#scene').fit();
+  },
+  _isGradientColoring: function(stats, colorBy) {
+    return ["compute_time", "memory"].indexOf(colorBy) !== -1
+        && stats != null;
+  },
+  _equals: function(a, b) {
+    return a === b;
+  },
+  _getCurrentGradientParams: function(colorByParams, colorBy) {
+    if (!this._isGradientColoring(this.stats, colorBy)) {
+      return;
+    }
+    var params = colorByParams[colorBy];
+    var minValue = params.minValue;
+    var maxValue = params.maxValue;
+    if (colorBy === 'memory') {
+      minValue = tf.graph.util.convertUnitsToHumanReadable(
+          minValue, tf.graph.util.MEMORY_UNITS);
+      maxValue = tf.graph.util.convertUnitsToHumanReadable(
+          maxValue, tf.graph.util.MEMORY_UNITS);
+    } else if (colorBy === 'compute_time') {
+      minValue = tf.graph.util.convertUnitsToHumanReadable(
+          minValue, tf.graph.util.TIME_UNITS);
+      maxValue = tf.graph.util.convertUnitsToHumanReadable(
+          maxValue, tf.graph.util.TIME_UNITS);
+    }
+    return {
+      minValue: minValue,
+      maxValue: maxValue,
+      startColor: params.startColor,
+      endColor: params.endColor
+    };
+  },
+  download: function() {
+    this.$.graphdownload.click();
+  },
+  _updateFileInput: function(e) {
+    var file = e.target.files[0];
+    if (!file) {
+      return;
+    }
+    this._setDownloadFilename(file.name);
+    this.set('selectedFile', e);
+  },
+  _datasetsChanged: function(newDatasets, oldDatasets) {
+    if (oldDatasets != null || this.selected == null) {
+      // Select the first dataset by default.
+      this.set('selectedDataset', 0);
+      this._setDownloadFilename(this.datasets[this.selectedDataset].path);
+    }
+  },
+  _getMetadataTags: function(selectedDataset, datasets) {
+    return this.datasets[selectedDataset].runMetadata;
+  },
+  _selectedDatasetChanged: function(newDataset, oldDataset) {
+    if (this.datasets) {
+      this.set('selectedMetadataTag', -1);
+      this.set('colorBy', 'structure');
+      this.$['trace-inputs'].active = false; // Set trace input to off-state.
+      this._setDownloadFilename(this.datasets[newDataset].path);
+    }
+  },
+  _getFile: function() {
+    this.$$("#file").click();
+  },
+  _setDownloadFilename: function(graphPath) {
+    // Strip off everything before the last "/" and strip off the file
+    // extension in order to get the name of the PNG for the graph.
+    var dotIndex = graphPath.lastIndexOf('.');
+    if (dotIndex) {
+      graphPath = graphPath.substring(0, dotIndex);
+    }
+    var slashIndex = graphPath.lastIndexOf('/');
+    if (slashIndex) {
+      graphPath = graphPath.substring(slashIndex + 1);
+    }
+    this.$.graphdownload.setAttribute('download', graphPath + '.png');
+  },
+  _statsNotNull: function(stats) {
+    return stats !== null;
+  },
+  _toggleLegendOpen() {
+    this.set('_legendOpened', !this._legendOpened);
+  },
+  _getToggleText(legendOpened) {
+    return legendOpened ? "Close legend." : "Expand legend.";
+  },
+  _getToggleLegendIcon(legendOpened) {
+    // This seems counter-intuitive, but actually makes sense because the
+    // expand-more button points downwards, and the expand-less button points
+    // upwards. For most collapsibles, this works because the collapsibles
+    // expand in the downwards direction. This collapsible expands upwards
+    // though, so we reverse the icons.
+    return legendOpened ? "expand-more" : "expand-less";
+  },
+});
+})(); // Closing private scope.
+</script>

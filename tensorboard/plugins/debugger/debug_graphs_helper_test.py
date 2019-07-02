@@ -12,24 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests the debug_graphs_helper module.
-
-[1]: Below graph creates different ops
-  a = tf.Variable([1.0], name='a')
-  b = tf.Variable([2.0], name='b')
-  _ = tf.add(a, b, name='c')
-
-In v1:
-  a, a/Assign, a/initial_value, a/read,
-  b, b/Assign, b/initial_value, b/read,
-  c
-In v2:
-  a, a/Assign, a/Initializer/initial_value,
-  a/IsInitialized/VarIsInitializedOp, a/Read/ReadVariableOp
-  b, b/Assign, b/Initializer/initial_value,
-  b/IsInitialized/VarIsInitializedOp, b/Read/ReadVariableOp,
-  c, c/ReadVariableOp,  c/ReadVariableOp_1,
-"""
+"""Tests the debug_graphs_helper module."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -39,12 +22,7 @@ import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 from tensorflow.python.debug.lib import grpc_debug_test_server
 
-from tensorboard.compat.proto import config_pb2
 from tensorboard.plugins.debugger import debug_graphs_helper
-from tensorboard.util import tb_logging
-from tensorboard.util import test_util
-
-logger = tb_logging.get_logger()
 
 
 class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
@@ -55,7 +33,7 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
      cls.debug_server
     ) = grpc_debug_test_server.start_server_on_separate_thread(
         dump_to_filesystem=False)
-    logger.info('debug server url: %s', cls.debug_server_url)
+    tf.logging.info('debug server url: %s', cls.debug_server_url)
 
   @classmethod
   def tearDownClass(cls):
@@ -63,7 +41,7 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
     cls.debug_server_thread.join()
 
   def tearDown(self):
-    tf.compat.v1.reset_default_graph()
+    tf.reset_default_graph()
     self.debug_server.clear_data()
 
   def _createTestGraphAndRunOptions(self, sess, gated_grpc=True):
@@ -75,7 +53,7 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
     y = tf.add(c, d, name='y')
     z = tf.add(x, y, name='z')
 
-    run_options = tf.compat.v1.RunOptions(output_partition_graphs=True)
+    run_options = tf.RunOptions(output_partition_graphs=True)
     debug_op = 'DebugIdentity'
     if gated_grpc:
       debug_op += '(gated_grpc=True)'
@@ -85,13 +63,12 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
                          debug_urls=self.debug_server_url)
     return z, run_options
 
-  @test_util.run_v1_only('Ops differ. Similar to [1].')
   def testExtractGatedGrpcTensorsFoundGatedGrpcOps(self):
-    with tf.compat.v1.Session() as sess:
+    with tf.Session() as sess:
       z, run_options = self._createTestGraphAndRunOptions(sess, gated_grpc=True)
 
-      sess.run(tf.compat.v1.global_variables_initializer())
-      run_metadata = config_pb2.RunMetadata()
+      sess.run(tf.global_variables_initializer())
+      run_metadata = tf.RunMetadata()
       self.assertAllClose(
           [10.0], sess.run(z, options=run_options, run_metadata=run_metadata))
 
@@ -108,7 +85,6 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
       gated_debug_ops = [
           (item[0], item[2], item[3]) for item in gated_debug_ops]
 
-      # TODO(#1705): TF 2.0 breaks below.
       self.assertIn(('a', 0, 'DebugIdentity'), gated_debug_ops)
       self.assertIn(('a/read', 0, 'DebugIdentity'), gated_debug_ops)
       self.assertIn(('b', 0, 'DebugIdentity'), gated_debug_ops)
@@ -122,11 +98,11 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
       self.assertIn(('z', 0, 'DebugIdentity'), gated_debug_ops)
 
   def testGraphDefProperty(self):
-    with tf.compat.v1.Session() as sess:
+    with tf.Session() as sess:
       z, run_options = self._createTestGraphAndRunOptions(sess, gated_grpc=True)
 
-      sess.run(tf.compat.v1.global_variables_initializer())
-      run_metadata = config_pb2.RunMetadata()
+      sess.run(tf.global_variables_initializer())
+      run_metadata = tf.RunMetadata()
       self.assertAllClose(
           [10.0], sess.run(z, options=run_options, run_metadata=run_metadata))
 
@@ -136,12 +112,12 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
           run_metadata.partition_graphs[0], graph_wrapper.graph_def)
 
   def testExtractGatedGrpcTensorsFoundNoGatedGrpcOps(self):
-    with tf.compat.v1.Session() as sess:
+    with tf.Session() as sess:
       z, run_options = self._createTestGraphAndRunOptions(sess,
                                                           gated_grpc=False)
 
-      sess.run(tf.compat.v1.global_variables_initializer())
-      run_metadata = config_pb2.RunMetadata()
+      sess.run(tf.global_variables_initializer())
+      run_metadata = tf.RunMetadata()
       self.assertAllClose(
           [10.0], sess.run(z, options=run_options, run_metadata=run_metadata))
 
@@ -151,13 +127,10 @@ class ExtractGatedGrpcDebugOpsTest(tf.test.TestCase):
       self.assertEqual([], gated_debug_ops)
 
 
-@test_util.run_v1_only((
-    'Graph creates different op structure in v2. See '
-    'debug_graphs_helper_test.py[1].'))
 class BaseExpandedNodeNameTest(tf.test.TestCase):
 
   def testMaybeBaseExpandedNodeName(self):
-    with tf.compat.v1.Session() as sess:
+    with tf.Session() as sess:
       a = tf.Variable([1.0], name='foo/a')
       b = tf.Variable([2.0], name='bar/b')
       _ = tf.add(a, b, name='baz/c')
@@ -174,7 +147,6 @@ class BaseExpandedNodeNameTest(tf.test.TestCase):
       self.assertEqual(
           'bar/b/read',
           graph_wrapper.maybe_base_expanded_node_name('bar/b/read'))
-      # TODO(#1705): TF 2.0 tf.add creates nested nodes.
       self.assertEqual(
           'baz/c', graph_wrapper.maybe_base_expanded_node_name('baz/c'))
 

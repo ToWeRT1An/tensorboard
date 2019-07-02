@@ -18,11 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorboard.compat.proto import summary_pb2
+import tensorflow as tf
 from tensorboard.plugins.audio import plugin_data_pb2
-from tensorboard.util import tb_logging
 
-logger = tb_logging.get_logger()
 
 PLUGIN_NAME = 'audio'
 
@@ -35,17 +33,17 @@ Encoding = plugin_data_pb2.AudioPluginData.Encoding
 
 
 def create_summary_metadata(display_name, description, encoding):
-  """Create a `SummaryMetadata` proto for audio plugin data.
+  """Create a `tf.SummaryMetadata` proto for audio plugin data.
 
   Returns:
-    A `SummaryMetadata` protobuf object.
+    A `tf.SummaryMetadata` protobuf object.
   """
   content = plugin_data_pb2.AudioPluginData(
       version=PROTO_VERSION, encoding=encoding)
-  metadata = summary_pb2.SummaryMetadata(
+  metadata = tf.SummaryMetadata(
       display_name=display_name,
       summary_description=description,
-      plugin_data=summary_pb2.SummaryMetadata.PluginData(
+      plugin_data=tf.SummaryMetadata.PluginData(
           plugin_name=PLUGIN_NAME,
           content=content.SerializeToString()))
   return metadata
@@ -61,13 +59,16 @@ def parse_plugin_metadata(content):
   Returns:
     An `AudioPluginData` protobuf object.
   """
-  if not isinstance(content, bytes):
-    raise TypeError('Content type must be bytes')
-  result = plugin_data_pb2.AudioPluginData.FromString(content)
+  result = plugin_data_pb2.AudioPluginData()
+  # TODO(@jart): Instead of converting to bytes, assert that the input
+  # is a bytestring, and raise a ValueError otherwise...but only after
+  # converting `PluginData`'s `content` field to have type `bytes`
+  # instead of `string`.
+  result.ParseFromString(tf.compat.as_bytes(content))
   if result.version == 0:
     return result
   else:
-    logger.warn(
+    tf.logging.warn(
         'Unknown metadata version: %s. The latest version known to '
         'this build of TensorBoard is %s; perhaps a newer build is '
         'available?', result.version, PROTO_VERSION)

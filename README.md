@@ -1,4 +1,4 @@
-# TensorBoard [![Travis build status](https://www.travis-ci.com/tensorflow/tensorboard.svg?branch=master)](https://travis-ci.com/tensorflow/tensorboard/) [![Compat check PyPI](https://python-compatibility-tools.appspot.com/one_badge_image?package=tensorboard)](https://python-compatibility-tools.appspot.com/one_badge_target?package=tensorboard)
+# TensorBoard ![Travis build status](https://travis-ci.org/tensorflow/tensorboard.svg?branch=master)
 
 TensorBoard is a suite of web applications for inspecting and understanding your
 TensorFlow runs and graphs.
@@ -7,7 +7,7 @@ This README gives an overview of key concepts in TensorBoard, as well as how to
 interpret the visualizations TensorBoard provides. For an in-depth example of
 using TensorBoard, see the tutorial: [TensorBoard: Visualizing
 Learning][].
-For in-depth information on the Graph Visualizer, see this tutorial:
+For in-depth information on the Graph Visualizer, see this tutorial: 
 [TensorBoard: Graph Visualization][].
 
 [TensorBoard: Visualizing Learning]: https://www.tensorflow.org/get_started/summaries_and_tensorboard
@@ -15,12 +15,12 @@ For in-depth information on the Graph Visualizer, see this tutorial:
 
 You may also want to watch
 [this video tutorial][] that walks
-through setting up and using TensorBoard. There's an associated
+through setting up and using TensorBoard. There's an associated 
 [tutorial with an end-to-end example of training TensorFlow and using TensorBoard][].
 
 [this video tutorial]: https://www.youtube.com/watch?v=eBbEDRsCmv4
 
-[tutorial with an end-to-end example of training TensorFlow and using TensorBoard]: https://github.com/martinwicke/tf-dev-summit-tensorboard-tutorial
+[tutorial with an end-to-end example of training TensorFlow and using TensorBoard]: https://github.com/dandelionmane/tf-dev-summit-tensorboard-tutorial
 
 # Usage
 
@@ -33,7 +33,7 @@ directory by creating a summary writer:
 file_writer = tf.summary.FileWriter('/path/to/logs', sess.graph)
 ```
 
-For more details, see
+For more details, see 
 [the TensorBoard tutorial](https://www.tensorflow.org/get_started/summaries_and_tensorboard).
 Once you have event files, run TensorBoard and provide the log directory. If
 you're using a precompiled TensorFlow package (e.g. you installed via pip), run:
@@ -66,7 +66,7 @@ work, but there may be bugs or performance issues.
 ### Summary Ops: How TensorBoard gets data from TensorFlow
 
 The first step in using TensorBoard is acquiring data from your TensorFlow run.
-For this, you need
+For this, you need 
 [summary ops](https://www.tensorflow.org/api_docs/python/tf/summary).
 Summary ops are ops, like
 [`tf.matmul`](https://www.tensorflow.org/versions/r1.2/api_docs/python/tf/matmul)
@@ -81,11 +81,11 @@ summary.FileWriter. A full explanation, with examples, is in [the
 tutorial](https://www.tensorflow.org/get_started/summaries_and_tensorboard).
 
 The supported summary ops include:
-* [`tf.summary.scalar`](https://www.tensorflow.org/api_docs/python/tf/summary/scalar)
-* [`tf.summary.image`](https://www.tensorflow.org/api_docs/python/tf/summary/image)
-* [`tf.summary.audio`](https://www.tensorflow.org/api_docs/python/tf/summary/audio)
-* [`tf.summary.text`](https://www.tensorflow.org/api_docs/python/tf/summary/text)
-* [`tf.summary.histogram`](https://www.tensorflow.org/api_docs/python/tf/summary/histogram)
+* tf.summary.scalar
+* tf.summary.image
+* tf.summary.audio
+* tf.summary.text
+* tf.summary.histogram
 
 ### Tags: Giving names to data
 
@@ -232,20 +232,32 @@ features including hyperlinks, lists, and tables are all supported.
 
 ### My TensorBoard isn't showing any data! What's wrong?
 
-First, check that the directory passed to `--logdir` is correct. You can also
-verify this by navigating to the Scalars dashboard (under the "Inactive" menu)
-and looking for the log directory path at the bottom of the left sidebar.
+The first thing to do is ensure that TensorBoard is properly loading data from
+the correct directory. Launch `tensorboard --logdir DIRECTORY_PATH --debug` and
+look for output of the form
+
+`INFO:tensorflow:TensorBoard path_to_run is: {'DIRECTORY_PATH': None}`
+
+Verify that the DIRECTORY_PATH TensorBoard is looking at is the path you expect.
+(Note: There's a known issue where TensorBoard [does not handle paths starting
+in ~ properly](https://github.com/tensorflow/tensorflow/issues/1587)).
 
 If you're loading from the proper path, make sure that event files are present.
 TensorBoard will recursively walk its logdir, it's fine if the data is nested
-under a subdirectory. Ensure the following shows at least one result:
+under a subdirectory. Try running the command:
 
 `find DIRECTORY_PATH | grep tfevents`
 
-You can also check that the event files actually have data by running
-tensorboard in inspect mode to inspect the contents of your event files.
+If you have at least one result, then TensorBoard should be able to load data.
+
+Finally, let's make sure that the event files actually have data. Run
+tensorboard in inspector mode to inspect the contents of your event files.
 
 `tensorboard --inspect --logdir DIRECTORY_PATH`
+
+If after running this procedure, it's still not working, please file an [issue
+on GitHub](https://github.com/tensorflow/tensorflow/issues). It will be much
+easier for us to debug it if you provide an event file that isn't working.
 
 ### TensorBoard is showing only some of my data, or isn't properly updating!
 
@@ -275,7 +287,7 @@ with itself, there are a few possible explanations.
 * You may have multiple execution of TensorFlow that all wrote to the same log
 directory. Please have each TensorFlow run write to its own logdir.
 
-* You may have a bug in your code where the global_step variable (passed
+* You may have a have a bug in your code where the global_step variable (passed
 to `FileWriter.add_summary`) is being maintained incorrectly.
 
 * It may be that your TensorFlow job crashed, and was restarted from an earlier
@@ -310,22 +322,14 @@ download links" option in the left-hand bar. Then, each plot will provide
 download links for the data it contains.
 
 If you need access to the full dataset, you can read the event files that
-TensorBoard consumes by using the [`summary_iterator`](
-https://www.tensorflow.org/api_docs/python/tf/train/summary_iterator)
+TensorBoard consumes by using the [`summary_iterator`](https://github.com/tensorflow/tensorflow/blob/e7f333b5f8b3c53b21d149d8d14c0cebbde431aa/tensorflow/python/summary/summary_iterator.py#L313)
 method.
 
-### Can I customize which lines appear in a plot?
 
-Using the [custom scalars plugin](tensorboard/plugins/custom_scalar), you can
-create scalar plots with lines for custom run-tag pairs. However, within the
-original scalars dashboard, each scalar plot corresponds to data for a specific
-tag and contains lines for each run that includes that tag.
+### Can I overlap multiple plots?
 
-### Can I visualize margins above and below lines?
-
-Margin plots (that visualize lower and upper bounds) may be created with the
-[custom scalars plugin](tensorboard/plugins/custom_scalar). The original
-scalars plugin does not support visualizing margins.
+Right now, you can overlap plots only if they are from different runs, and both
+have the same tag name.
 
 ### Can I create scatterplots (or other custom plots)?
 
@@ -339,11 +343,9 @@ custom plot will appear in the TensorBoard image tab.
 TensorBoard uses [reservoir
 sampling](https://en.wikipedia.org/wiki/Reservoir_sampling) to downsample your
 data so that it can be loaded into RAM. You can modify the number of elements it
-will keep per tag by using the `--samples_per_plugin` command line argument (ex:
-`--samples_per_plugin=scalars=500,images=20`). Alternatively, you can change the
-source code in
+will keep per tag in
 [tensorboard/backend/application.py](tensorboard/backend/application.py).
-See this [Stack Overflow question](http://stackoverflow.com/questions/43702546/tensorboard-doesnt-show-all-data-points/)
+See this [StackOverflow question](http://stackoverflow.com/questions/43702546/tensorboard-doesnt-show-all-data-points/)
 for some more information.
 
 ### I get a network security popup every time I run TensorBoard on a mac!
@@ -359,16 +361,20 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 ### I have a different issue that wasn't addressed here!
 
 First, try searching our [GitHub
-issues](https://github.com/tensorflow/tensorboard/issues) and
-[Stack Overflow][stack-overflow]. It may be
+issues](https://github.com/tensorflow/tensorboard/issues) and [Stack
+Overflow](https://stackoverflow.com/questions/tagged/tensorboard). It may be
 that someone else has already had the same issue or question.
 
-General usage questions (or problems that may be specific to your local setup)
-should go to [Stack Overflow][stack-overflow].
+If you have a bug, please [file a GitHub
+issue](https://github.com/tensorflow/tensorboard/issues). If the bug is related
+to your specific data (e.g. the events aren't loading properly), please do both
+of the following things to make it easier for us to debug and fix:
 
-If you have found a bug in TensorBoard, please [file a GitHub issue](
-https://github.com/tensorflow/tensorboard/issues/new) with as much supporting
-information as you can provide (e.g. attaching events files, including the output
-of `tensorboard --inspect`, etc.).
+- Run tensorboard in --inspect mode and copy paste the debug output.
+- Upload some events files that will reproduce the issue.
 
-[stack-overflow]: https://stackoverflow.com/questions/tagged/tensorboard
+If you have a feature request, please [file a GitHub
+issue](https://github.com/tensorflow/tensorboard/issues).
+
+General usage questions should go to [Stack
+Overflow](http://stackoverflow.com/questions/tagged/tensorflow).

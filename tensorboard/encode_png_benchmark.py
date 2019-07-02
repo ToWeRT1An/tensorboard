@@ -51,16 +51,10 @@ import time
 
 from six.moves import xrange
 
-from absl import app
-from absl import logging
 import numpy as np
 import tensorflow as tf
 
-from tensorboard.util import encoder
-from tensorboard.util import tb_logging
-
-
-logger = tb_logging.get_logger()
+from tensorboard import util
 
 
 def bench(image, thread_count):
@@ -70,7 +64,7 @@ def bench(image, thread_count):
     A `float` representing number of seconds that it takes all threads
     to finish encoding `image`.
   """
-  threads = [threading.Thread(target=lambda: encoder.encode_png(image))
+  threads = [threading.Thread(target=lambda: util.encode_png(image))
              for _ in xrange(thread_count)]
   start_time = datetime.datetime.now()
   for thread in threads:
@@ -107,28 +101,28 @@ def _format_line(headers, fields):
 
 
 def main(unused_argv):
-  logging.set_verbosity(logging.INFO)
+  tf.logging.set_verbosity(tf.logging.INFO)
   np.random.seed(0)
 
   thread_counts = [1, 2, 4, 6, 8, 10, 12, 14, 16, 32]
 
-  logger.info("Warming up...")
+  tf.logging.info("Warming up...")
   warmup_image = _image_of_size(256)
   for thread_count in thread_counts:
     bench(warmup_image, thread_count)
 
-  logger.info("Running...")
+  tf.logging.info("Running...")
   results = {}
   image = _image_of_size(4096)
   headers = ('THREADS', 'TOTAL_TIME', 'UNIT_TIME', 'SPEEDUP', 'PARALLELISM')
-  logger.info(_format_line(headers, headers))
+  tf.logging.info(_format_line(headers, headers))
   for thread_count in thread_counts:
     time.sleep(1.0)
     total_time = min(bench(image, thread_count)
                      for _ in xrange(3))  # best-of-three timing
     unit_time = total_time / thread_count
     if total_time < 2.0:
-      logger.warn("This benchmark is running too quickly! This "
+      tf.logging.warning("This benchmark is running too quickly! This "
                          "may cause misleading timing data. Consider "
                          "increasing the image size until it takes at "
                          "least 2.0s to encode one image.")
@@ -136,8 +130,8 @@ def main(unused_argv):
     speedup = results[1] / results[thread_count]
     parallelism = speedup / thread_count
     fields = (thread_count, total_time, unit_time, speedup, parallelism)
-    logger.info(_format_line(headers, fields))
+    tf.logging.info(_format_line(headers, fields))
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run()

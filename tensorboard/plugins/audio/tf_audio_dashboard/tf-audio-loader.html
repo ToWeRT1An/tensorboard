@@ -76,6 +76,7 @@ backend.
     <template is="dom-if" if="[[_hasAtLeastOneStep]]">
       <audio
         controls
+        loop="loop"
         src$="[[_currentDatum.url]]"
         type$="[[_currentDatum.contentType]]"
       ></audio>
@@ -205,11 +206,11 @@ backend.
         }
         this._metadataCanceller.cancelAll();
         const router = tf_backend.getRouter();
-        const url = router.pluginRoute('audio', '/audio', new URLSearchParams({
+        const url = tf_backend.addParams(router.pluginRoute('audio', '/audio'), {
             tag: this.tag,
             run: this.run,
             sample: this.sample,
-        }));
+        });
         const updateSteps = this._metadataCanceller.cancellable(result => {
           if (result.cancelled) {
             return;
@@ -222,16 +223,12 @@ backend.
         this.requestManager.request(url).then(updateSteps);
       },
       _createStepDatum(audioMetadata) {
-        const searchParam = new URLSearchParams(audioMetadata.query);
+        let url = tf_backend.getRouter().pluginRoute('audio', '/individualAudio');
         // Include wall_time just to disambiguate the URL and force
         // the browser to reload the audio when the URL changes. The
         // backend doesn't care about the value.
-        searchParam.append('ts', audioMetadata.wall_time);
-        const url = tf_backend.getRouter().pluginRoute(
-            'audio',
-            '/individualAudio',
-            searchParam
-        );
+        url = tf_backend.addParams(url, {ts: audioMetadata.wall_time});
+        url += '&' + audioMetadata.query;
 
         return {
           wall_time: tf_card_heading.formatDate(new Date(audioMetadata.wall_time * 1000)),

@@ -26,6 +26,7 @@ limitations under the License.
 <link rel="import" href="../tf-categorization-utils/tf-tag-filterer.html">
 <link rel="import" href="../tf-dashboard-common/dashboard-style.html">
 <link rel="import" href="../tf-dashboard-common/tf-dashboard-layout.html">
+<link rel="import" href="../tf-dashboard-common/tf-regex-group.html">
 <link rel="import" href="../tf-paginated-view/tf-paginated-view.html">
 <link rel="import" href="../tf-runs-selector/tf-runs-selector.html">
 <link rel="import" href="../tf-tensorboard/registry.html">
@@ -114,7 +115,7 @@ TensorFlow run.
         <template is="dom-if" if="[[!_dataNotFound]]">
           <tf-tag-filterer tag-filter="{{_tagFilter}}"></tf-tag-filterer>
           <template is="dom-repeat" items="[[_categories]]" as="category">
-            <tf-category-pane category="[[category]]" opened="[[_shouldOpen(index)]]">
+            <tf-category-pane category="[[category]]">
               <tf-paginated-view
                 items="[[category.items]]"
                 pages="{{category._pages}}"
@@ -177,13 +178,9 @@ TensorFlow run.
         margin: 80px auto 0 auto;
       }
       paper-slider {
-        --paper-slider-active-color: var(--tb-orange-strong);
-        --paper-slider-knob-color: var(--tb-orange-strong);
-        --paper-slider-knob-start-border-color: var(--tb-orange-strong);
-        --paper-slider-knob-start-color: var(--tb-orange-strong);
-        --paper-slider-markers-color: var(--tb-orange-strong);
-        --paper-slider-pin-color: var(--tb-orange-strong);
-        --paper-slider-pin-start-color: var(--tb-orange-strong);
+        --paper-slider-knob-start-color: var(--google-blue-700);
+        --paper-slider-knob-start-border-color: var(--google-blue-700);
+        --paper-slider-pin-start-color: var(--google-blue-700);
       }
     </style>
   </template>
@@ -273,10 +270,6 @@ TensorFlow run.
         });
       },
 
-      _shouldOpen(index) {
-        return index <= 2;
-      },
-
       _resetBrightness() {
         this._brightnessAdjustment = this._defaultBrightnessAdjustment;
       },
@@ -312,5 +305,11 @@ TensorFlow run.
         return runToTagInfo[run][tag];
       },
     });
+
+    tf_tensorboard.registerDashboard({
+      plugin: 'images',
+      elementName: 'tf-image-dashboard',
+    });
+
   </script>
 </dom-module>

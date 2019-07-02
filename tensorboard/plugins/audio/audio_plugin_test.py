@@ -34,12 +34,10 @@ from werkzeug import wrappers
 from tensorboard.backend import application
 from tensorboard.backend.event_processing import plugin_event_multiplexer as event_multiplexer  # pylint: disable=line-too-long
 from tensorboard.plugins import base_plugin
-from tensorboard.plugins.audio import audio_plugin
 from tensorboard.plugins.audio import summary
-from tensorboard.util import test_util
+from tensorboard.plugins.audio import audio_plugin
 
 
-@test_util.run_v1_only('Uses tf.contrib in setUp via audio.summary')
 class AudioPluginTest(tf.test.TestCase):
 
   def setUp(self):
@@ -50,41 +48,43 @@ class AudioPluginTest(tf.test.TestCase):
     numpy.random.seed(42)
 
     # Create old-style audio summaries for run "foo".
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
-    placeholder = tf.compat.v1.placeholder(tf.float32)
-    tf.compat.v1.summary.audio(name="baz", tensor=placeholder, sample_rate=44100)
-    merged_summary_op = tf.compat.v1.summary.merge_all()
+    tf.reset_default_graph()
+    sess = tf.Session()
+    placeholder = tf.placeholder(tf.float32)
+    tf.summary.audio(name="baz", tensor=placeholder, sample_rate=44100)
+    merged_summary_op = tf.summary.merge_all()
     foo_directory = os.path.join(self.log_dir, "foo")
-    with test_util.FileWriterCache.get(foo_directory) as writer:
-      writer.add_graph(sess.graph)
-      for step in xrange(2):
-        # The floats (sample data) range from -1 to 1.
-        writer.add_summary(sess.run(merged_summary_op, feed_dict={
-            placeholder: numpy.random.rand(42, 22050) * 2 - 1
-        }), global_step=step)
+    writer = tf.summary.FileWriter(foo_directory)
+    writer.add_graph(sess.graph)
+    for step in xrange(2):
+      # The floats (sample data) range from -1 to 1.
+      writer.add_summary(sess.run(merged_summary_op, feed_dict={
+          placeholder: numpy.random.rand(42, 22050) * 2 - 1
+      }), global_step=step)
+    writer.close()
 
     # Create new-style audio summaries for run "bar".
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
-    audio_placeholder = tf.compat.v1.placeholder(tf.float32)
-    labels_placeholder = tf.compat.v1.placeholder(tf.string)
+    tf.reset_default_graph()
+    sess = tf.Session()
+    audio_placeholder = tf.placeholder(tf.float32)
+    labels_placeholder = tf.placeholder(tf.string)
     summary.op("quux", audio_placeholder, sample_rate=44100,
                labels=labels_placeholder,
                description="how do you pronounce that, anyway?")
-    merged_summary_op = tf.compat.v1.summary.merge_all()
+    merged_summary_op = tf.summary.merge_all()
     bar_directory = os.path.join(self.log_dir, "bar")
-    with test_util.FileWriterCache.get(bar_directory) as writer:
-      writer.add_graph(sess.graph)
-      for step in xrange(2):
-        # The floats (sample data) range from -1 to 1.
-        writer.add_summary(sess.run(merged_summary_op, feed_dict={
-            audio_placeholder: numpy.random.rand(42, 11025, 1) * 2 - 1,
-            labels_placeholder: [
-                tf.compat.as_bytes('step **%s**, sample %s' % (step, sample))
-                for sample in xrange(42)
-            ],
-        }), global_step=step)
+    writer = tf.summary.FileWriter(bar_directory)
+    writer.add_graph(sess.graph)
+    for step in xrange(2):
+      # The floats (sample data) range from -1 to 1.
+      writer.add_summary(sess.run(merged_summary_op, feed_dict={
+          audio_placeholder: numpy.random.rand(42, 11025, 1) * 2 - 1,
+          labels_placeholder: [
+              tf.compat.as_bytes('step **%s**, sample %s' % (step, sample))
+              for sample in xrange(42)
+          ],
+      }), global_step=step)
+    writer.close()
 
     # Start a server with the plugin.
     multiplexer = event_multiplexer.EventMultiplexer({
@@ -94,15 +94,10 @@ class AudioPluginTest(tf.test.TestCase):
     context = base_plugin.TBContext(
         logdir=self.log_dir, multiplexer=multiplexer)
     self.plugin = audio_plugin.AudioPlugin(context)
-    # Setting a reload interval of -1 disables reloading. We disable reloading
-    # because we seek to block tests from running til after one reload finishes.
-    # This setUp method thus manually reloads the multiplexer. TensorBoard would
-    # otherwise reload in a non-blocking thread.
     wsgi_app = application.TensorBoardWSGIApp(
-        self.log_dir, [self.plugin], multiplexer, reload_interval=-1,
+        self.log_dir, [self.plugin], multiplexer, reload_interval=0,
         path_prefix='')
     self.server = werkzeug_test.Client(wsgi_app, wrappers.BaseResponse)
-    multiplexer.Reload()
 
   def tearDown(self):
     shutil.rmtree(self.log_dir, ignore_errors=True)

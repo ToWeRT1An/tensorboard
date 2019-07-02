@@ -43,11 +43,10 @@ limitations under the License.
       default-y-range="[[_defaultYRange]]"
       smoothing-enabled="[[_smoothingEnabled]]"
       request-manager="[[requestManager]]"
-      data-to-load="[[runs]]"
-      data-series="[[runs]]"
-      load-key="[[tag]]"
-      get-data-load-url="[[_dataUrl]]"
-      load-data-callback="[[_createProcessDataFunction()]]"
+      runs="[[runs]]"
+      tag="[[tag]]"
+      data-url="[[_dataUrl]]"
+      process-data="[[_createProcessDataFunction()]]"
       active="[[active]]"
     ></tf-line-chart-data-loader>
 
@@ -226,8 +225,8 @@ limitations under the License.
           type: Array,
           readOnly: true,
           value: () => {
-            const valueFormatter = vz_chart_helpers.multiscaleFormatter(
-                vz_chart_helpers.Y_TOOLTIP_FORMATTER_PRECISION);
+            const valueFormatter = vz_line_chart.multiscaleFormatter(
+                vz_line_chart.Y_TOOLTIP_FORMATTER_PRECISION);
             const formatValueOrNaN =
                 (x) => isNaN(x) ? 'NaN' : valueFormatter(x);
             return [
@@ -293,14 +292,8 @@ limitations under the License.
         },
         _dataUrl: {
           type: Function,
-          value: function() {
-            return (run) => {
-              const tag = this.tag;
-              return tf_backend.addParams(
-                tf_backend.getRouter().pluginRoute('pr_curves', '/pr_curves'),
-                {tag, run});
-            };
-          },
+          value: () => (tag, run) => tf_backend.addParams(
+              tf_backend.getRouter().pluginRoute('pr_curves', '/pr_curves'), {tag, run}),
         },
         _smoothingEnabled: {
           type: Boolean,

@@ -12,5 +12,3 @@ filegroup(
     ],
     visibility = ["//visibility:public"],
 )
-
-exports_files(["web_test_python_stub.template.py"])

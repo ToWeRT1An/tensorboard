@@ -84,7 +84,7 @@ limitations under the License.
         <template is="dom-if" if="[[!_dataNotFound]]">
           <tf-tag-filterer tag-filter="{{_tagFilter}}"></tf-tag-filterer>
           <template is="dom-repeat" items="[[_categories]]" as="category">
-            <tf-category-pane category="[[category]]" opened="[[_shouldOpen(index)]]">
+            <tf-category-pane category="[[category]]">
               <tf-paginated-view
                 items="[[category.items]]"
                 pages="{{category._pages}}"
@@ -105,7 +105,7 @@ limitations under the License.
                   </template>
                 </template>
               </tf-paginated-view>
-            </tf-category-pane>
+            </tf-collapsable-pane>
           </template>
         </template>
       </div>
@@ -184,16 +184,17 @@ limitations under the License.
         });
       },
 
-      _shouldOpen(index) {
-        return index <= 2;
-      },
-
       _makeCategories(runToTag, selectedRuns, tagFilter, categoriesDomReady) {
         return tf_categorization_utils.categorizeRunTagCombinations(runToTag, selectedRuns, tagFilter);
       },
       _tagMetadata(runToTagInfo, run, tag) {
         return runToTagInfo[run][tag];
       },
+    });
+
+    tf_tensorboard.registerDashboard({
+      plugin: 'distributions',
+      elementName: 'tf-distribution-dashboard',
     });
 
   </script>

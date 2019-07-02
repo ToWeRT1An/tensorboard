@@ -12,32 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Rule for zipping Webfiles."""
-
-load("@io_bazel_rules_closure//closure/private:defs.bzl", "unfurl")
+load("@io_bazel_rules_closure//closure/private:defs.bzl", "unfurl", "long_path")
 
 def _tensorboard_zip_file(ctx):
   deps = unfurl(ctx.attr.deps, provider="webfiles")
-  manifests = depset(order="postorder")
+  manifests = depset(order="topological")
   files = depset()
   webpaths = depset()
   for dep in deps:
-    manifests = depset(transitive=[manifests, dep.webfiles.manifests])
-    webpaths = depset(transitive=[webpaths, dep.webfiles.webpaths])
-    files = depset(transitive=[files, dep.data_runfiles.files])
-  ctx.actions.run(
-      inputs=depset(transitive=[manifests, files]).to_list(),
+    manifests += dep.webfiles.manifests
+    webpaths += dep.webfiles.webpaths
+    files += dep.data_runfiles.files
+  ctx.action(
+      inputs=list(manifests + files),
       outputs=[ctx.outputs.zip],
       executable=ctx.executable._Zipper,
       arguments=([ctx.outputs.zip.path] +
-                 [m.path for m in manifests.to_list()]),
-      progress_message="Zipping %d files" % len(webpaths.to_list()))
+                 [m.path for m in manifests]),
+      progress_message="Zipping %d files" % len(webpaths))
   transitive_runfiles = depset()
   for dep in deps:
-    transitive_runfiles = depset(transitive=[
-        transitive_runfiles,
-        dep.data_runfiles.files,
-    ])
+    transitive_runfiles += dep.data_runfiles.files
   return struct(
       files=depset([ctx.outputs.zip]),
       runfiles=ctx.runfiles(
@@ -47,7 +42,7 @@ def _tensorboard_zip_file(ctx):
 tensorboard_zip_file = rule(
     implementation=_tensorboard_zip_file,
     attrs={
-        "data": attr.label_list(allow_files=True),
+        "data": attr.label_list(cfg="data", allow_files=True),
         "deps": attr.label_list(providers=["webfiles"], mandatory=True),
         "_Zipper": attr.label(
             default=Label("//tensorboard/java/org/tensorflow/tensorboard/vulcanize:Zipper"),

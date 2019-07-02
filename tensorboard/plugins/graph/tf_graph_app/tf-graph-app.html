@@ -53,18 +53,12 @@ The pbtxt format is the stringified version of the graphdef.
 }
 
 .side {
+  position: absolute;
+  left: 0;
+  width: 250px;
+  height: 100%;
   border: 1px solid black;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  left: 0;
-  position: absolute;
-  width: 250px;
-}
-
-tf-graph-controls {
-  flex-grow: 1;
 }
 
 .all {
@@ -76,7 +70,7 @@ tf-graph-controls {
 .container {
   height: 650px;
 }
-
+    
 /* The no-toolbar class will hide the div.side element, and move div.main over
    to the left hand side. */
 .container.no-toolbar .main {
@@ -85,34 +79,33 @@ tf-graph-controls {
 
 .container.no-toolbar .side {
   display: none;
-}
+}  
 </style>
 <div class="container">
   <div class="all">
     <div class="side">
       <tf-graph-controls
           color-by-params="[[colorByParams]]"
+          stats="[[stats]]"
           color-by="{{colorBy}}"
           render-hierarchy="[[_renderHierarchy]]"
-          selected-node="{{selectedNode}}"
-          selected-file="{{selectedFile}}"
       ></tf-graph-controls>
       <tf-graph-loader id="loader"
           out-graph-hierarchy="{{graphHierarchy}}"
           out-graph="{{graph}}"
+          out-stats="{{stats}}"
           progress="{{_progress}}"
-          selected-file="[[selectedFile]]"
       ></tf-graph-loader>
     </div>
     <div class="main">
       <tf-graph-board id="graphboard"
           graph-hierarchy="[[graphHierarchy]]"
           graph="[[graph]]"
+          stats="[[stats]]"
           progress="[[_progress]]"
           color-by="[[colorBy]]"
           color-by-params="{{colorByParams}}"
           render-hierarchy="{{_renderHierarchy}}"
-          selected-node="{{selectedNode}}"
       ></tf-graph-board>
     </div>
   </div>
@@ -126,6 +119,8 @@ tf-graph-controls {
 Polymer({
   is: 'tf-graph-app',
   properties: {
+    stats: Object,
+
     // To use tf-graph-app, specify one of these 2 properties. Provide either
     // 1. The path to a pbtxt file to load (pbtxtFileLocation). This option nicely makes the
     //    progress bar include the time it takes to load the file across the network. The path could
@@ -140,7 +135,7 @@ Polymer({
       type: String,
       observer: '_updateGraph',
     },
-
+      
     width: {
       type: Number,
       observer: '_updateWidth'
@@ -152,10 +147,6 @@ Polymer({
     toolbar: {
       type: Boolean,
       observer: '_updateToolbar'
-    },
-    selectedNode: {
-      type: String,
-      notify: true,
     },
 
     _renderHierarchy: Object,

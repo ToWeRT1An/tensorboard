@@ -112,27 +112,19 @@ tf-op-bar {
     <paper-card id="card" heading="[[node.name]]" elevation="2">
       <div id="subheader">[[_subheader(node)]]</div>
       <div class="card-content">
-        <div hidden="[[!_hasFlops(node)]]">
+        <div hidden="[[!node.metrics]]">
           <b>FLOPS utilization: </b>
           <tf-op-bar value="[[_utilization(node)]]"></tf-op-bar>
         </div>
-        <div hidden="[[!_hasMemoryUtilization(node)]]">
-          <b>Memory utilization: </b>
-          <tf-op-bar value="[[_memoryUtilization(node)]]"></tf-op-bar>
-        </div>
         <div hidden="[[!node.xla.expression]]">
-          <b>XLA Expression: </b>
+          <b>Expression: </b>
           <code class="expression">[[node.xla.expression]]</code>
-        </div>
-        <div hidden="[[!node.xla.provenance]]">
-          <b>TensorFlow Name: </b>
-          <code class="expression">[[node.xla.provenance]]</code>
         </div>
         <div class="unavailable" hidden="[[!_fused(node)]]">
           Performance information for individual fused operations is not available.
         </div>
         <div class="unavailable" hidden="[[!node.category]]">
-          Select items within this category for performance details.
+          Select items within this category for performace details.
         </div>
         <div hidden="[[!node.xla.layout]]">
           <b>Layout: </b>
@@ -162,11 +154,8 @@ Polymer({
     },
   },
   _utilization: tf_op_profile.utilization,
-  _memoryUtilization: tf_op_profile.memoryUtilization,
-  _hasFlops: tf_op_profile.hasFlops,
-  _hasMemoryUtilization: tf_op_profile.hasMemoryUtilization,
-  _updateCard: function(node) {
-    if (!node) return;
+  _updateCard: function(node){
+    if (node == null) return;
     var color = tf_op_profile.flameColor(tf_op_profile.utilization(node), 0.7);
     this.$.card.updateStyles({"--paper-card-header": "background-color:" + color});
     this.$.subheader.style.backgroundColor = color;
@@ -177,9 +166,7 @@ Polymer({
     if (node.category) return "Operation category";
     return "Unknown";
   },
-  _fused: function(node) {
-    return node && node.xla && !node.metrics;
-  },
+  _fused: function(node){ return node && node.xla && !node.metrics; },
   _dimensionColor: function(dim) {
     if (!dim || !dim.alignment) return null;
     var ratio = dim.size / dim.alignment;

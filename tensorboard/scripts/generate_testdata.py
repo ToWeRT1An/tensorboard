@@ -26,20 +26,18 @@ import os.path
 import random
 import shutil
 
-from absl import app
-from absl import flags
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 
-flags.DEFINE_string("target", None, """The directory where serialized data
+tf.flags.DEFINE_string("target", None, """The directory where serialized data
 will be written""")
 
-flags.DEFINE_boolean("overwrite", False, """Whether to remove and overwrite
+tf.flags.DEFINE_boolean("overwrite", False, """Whether to remove and overwrite
 TARGET if it already exists.""")
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
 # Hardcode a start time and reseed so script always generates the same data.
 _start_time = 0
@@ -71,7 +69,7 @@ def _MakeHistogram(values):
   bucket_limit = [lc[0] for lc in limit_counts]
   bucket = [lc[1] for lc in limit_counts]
   sum_sq = sum(v * v for v in values)
-  return tf.compat.v1.HistogramProto(
+  return tf.HistogramProto(
       min=min(values),
       max=max(values),
       num=len(values),
@@ -112,9 +110,9 @@ def WriteHistogramSeries(writer, tag, mu_sigma_tuples, n=20):
 def WriteImageSeries(writer, tag, n_images=1):
   """Write a few dummy images to writer."""
   step = 0
-  session = tf.compat.v1.Session()
-  p = tf.compat.v1.placeholder("uint8", (1, 4, 4, 3))
-  s = tf.compat.v1.summary.image(tag, p)
+  session = tf.Session()
+  p = tf.placeholder("uint8", (1, 4, 4, 3))
+  s = tf.summary.image(tag, p)
   for _ in xrange(n_images):
     im = np.random.random_integers(0, 255, (1, 4, 4, 3))
     summ = session.run(s, feed_dict={p: im})
@@ -126,7 +124,7 @@ def WriteImageSeries(writer, tag, n_images=1):
 def WriteAudioSeries(writer, tag, n_audio=1):
   """Write a few dummy audio clips to writer."""
   step = 0
-  session = tf.compat.v1.Session()
+  session = tf.Session()
 
   min_frequency_hz = 440
   max_frequency_hz = 880
@@ -135,9 +133,9 @@ def WriteAudioSeries(writer, tag, n_audio=1):
   frequencies_per_run = 1
   num_channels = 2
 
-  p = tf.compat.v1.placeholder("float32", (frequencies_per_run, duration_frames,
+  p = tf.placeholder("float32", (frequencies_per_run, duration_frames,
                                  num_channels))
-  s = tf.compat.v1.summary.audio(tag, p, sample_rate)
+  s = tf.summary.audio(tag, p, sample_rate)
 
   for _ in xrange(n_audio):
     # Generate a different frequency for each channel to show stereo works.
@@ -187,7 +185,7 @@ def GenerateTestData(path):
   WriteImageSeries(writer2, "im1")
   WriteAudioSeries(writer2, "au2")
 
-  graph_def = tf.compat.v1.GraphDef()
+  graph_def = tf.GraphDef()
   node1 = graph_def.node.add()
   node1.name = "a"
   node1.op = "matmul"
@@ -225,4 +223,4 @@ def main(unused_argv=None):
 
 
 if __name__ == "__main__":
-  app.run(main)
+  tf.app.run()

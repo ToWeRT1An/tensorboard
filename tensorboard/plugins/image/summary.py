@@ -26,14 +26,10 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import tensorflow as tf
 
+from tensorboard import util
 from tensorboard.plugins.image import metadata
-from tensorboard.plugins.image import summary_v2
-from tensorboard.util import encoder
-
-
-# Export V2 versions.
-image = summary_v2.image
 
 
 def op(name,
@@ -42,13 +38,13 @@ def op(name,
        display_name=None,
        description=None,
        collections=None):
-  """Create a legacy image summary op for use in a TensorFlow graph.
+  """Create an image summary op for use in a TensorFlow graph.
 
   Arguments:
     name: A unique name for the generated summary node.
-    images: A `Tensor` representing pixel data with shape `[k, h, w, c]`,
-      where `k` is the number of images, `h` and `w` are the height and
-      width of the images, and `c` is the number of channels, which
+    images: A `Tensor` representing pixel data with shape `[k, w, h, c]`,
+      where `k` is the number of images, `w` and `h` are the width and
+      height of the images, and `c` is the number of channels, which
       should be 1, 3, or 4. Any of the dimensions may be statically
       unknown (i.e., `None`).
     max_outputs: Optional `int` or rank-0 integer `Tensor`. At most this
@@ -66,9 +62,6 @@ def op(name,
   Returns:
     A TensorFlow summary op.
   """
-  # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
-  import tensorflow.compat.v1 as tf
-
   if display_name is None:
     display_name = name
   summary_metadata = metadata.create_summary_metadata(
@@ -81,9 +74,9 @@ def op(name,
     encoded_images = tf.map_fn(tf.image.encode_png, limited_images,
                                dtype=tf.string,
                                name='encode_each_image')
-    image_shape = tf.shape(input=images)
-    dimensions = tf.stack([tf.as_string(image_shape[2], name='width'),
-                           tf.as_string(image_shape[1], name='height')],
+    image_shape = tf.shape(images)
+    dimensions = tf.stack([tf.as_string(image_shape[1], name='width'),
+                           tf.as_string(image_shape[2], name='height')],
                           name='dimensions')
     tensor = tf.concat([dimensions, encoded_images], axis=0)
     return tf.summary.tensor_summary(name='image_summary',
@@ -93,7 +86,7 @@ def op(name,
 
 
 def pb(name, images, max_outputs=3, display_name=None, description=None):
-  """Create a legacy image summary protobuf.
+  """Create an image summary protobuf.
 
   This behaves as if you were to create an `op` with the same arguments
   (wrapped with constant tensors where appropriate) and then execute
@@ -103,7 +96,7 @@ def pb(name, images, max_outputs=3, display_name=None, description=None):
     name: A unique name for the generated summary, including any desired
       name scopes.
     images: An `np.array` representing pixel data with shape
-      `[k, h, w, c]`, where `k` is the number of images, `w` and `h` are
+      `[k, w, h, c]`, where `k` is the number of images, `w` and `h` are
       the width and height of the images, and `c` is the number of
       channels, which should be 1, 3, or 4.
     max_outputs: Optional `int`. At most this many images will be
@@ -118,16 +111,13 @@ def pb(name, images, max_outputs=3, display_name=None, description=None):
   Returns:
     A `tf.Summary` protobuf object.
   """
-  # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
-  import tensorflow.compat.v1 as tf
-
   images = np.array(images).astype(np.uint8)
   if images.ndim != 4:
     raise ValueError('Shape %r must have rank 4' % (images.shape, ))
 
   limited_images = images[:max_outputs]
-  encoded_images = [encoder.encode_png(image) for image in limited_images]
-  (width, height) = (images.shape[2], images.shape[1])
+  encoded_images = [util.encode_png(image) for image in limited_images]
+  (width, height) = (images.shape[1], images.shape[2])
   content = [str(width), str(height)] + encoded_images
   tensor = tf.make_tensor_proto(content, dtype=tf.string)
 
@@ -135,11 +125,9 @@ def pb(name, images, max_outputs=3, display_name=None, description=None):
     display_name = name
   summary_metadata = metadata.create_summary_metadata(
       display_name=display_name, description=description)
-  tf_summary_metadata = tf.SummaryMetadata.FromString(
-      summary_metadata.SerializeToString())
 
   summary = tf.Summary()
   summary.value.add(tag='%s/image_summary' % name,
-                    metadata=tf_summary_metadata,
+                    metadata=summary_metadata,
                     tensor=tensor)
   return summary

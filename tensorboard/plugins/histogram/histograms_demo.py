@@ -19,7 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from absl import app
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
@@ -29,16 +28,16 @@ from tensorboard.plugins.histogram import summary as histogram_summary
 LOGDIR = '/tmp/histograms_demo'
 
 
-def run_all(logdir, verbose=False, num_summaries=400):
+def run_all(logdir, verbose=False):
   """Generate a bunch of histogram data, and write it to logdir."""
   del verbose
 
-  tf.compat.v1.set_random_seed(0)
+  tf.set_random_seed(0)
 
-  k = tf.compat.v1.placeholder(tf.float32)
+  k = tf.placeholder(tf.float32)
 
   # Make a normal distribution, with a shifting mean
-  mean_moving_normal = tf.random.normal(shape=[1000], mean=(5*k), stddev=1)
+  mean_moving_normal = tf.random_normal(shape=[1000], mean=(5*k), stddev=1)
   # Record that distribution into a histogram summary
   histogram_summary.op("normal/moving_mean",
                        mean_moving_normal,
@@ -46,7 +45,7 @@ def run_all(logdir, verbose=False, num_summaries=400):
                                    "over time.")
 
   # Make a normal distribution with shrinking variance
-  shrinking_normal = tf.random.normal(shape=[1000], mean=0, stddev=1-(k))
+  shrinking_normal = tf.random_normal(shape=[1000], mean=0, stddev=1-(k))
   # Record that distribution too
   histogram_summary.op("normal/shrinking_variance", shrinking_normal,
                        description="A normal distribution whose variance "
@@ -63,19 +62,19 @@ def run_all(logdir, verbose=False, num_summaries=400):
                                    "becomes more and more bimodal over time.")
 
   # Add a gamma distribution
-  gamma = tf.random.gamma(shape=[1000], alpha=k)
+  gamma = tf.random_gamma(shape=[1000], alpha=k)
   histogram_summary.op("gamma", gamma,
                        description="A gamma distribution whose shape "
                                    "parameter, α, changes over time.")
 
   # And a poisson distribution
-  poisson = tf.compat.v1.random_poisson(shape=[1000], lam=k)
+  poisson = tf.random_poisson(shape=[1000], lam=k)
   histogram_summary.op("poisson", poisson,
                        description="A Poisson distribution, which only "
                                    "takes on integer values.")
 
   # And a uniform distribution
-  uniform = tf.random.uniform(shape=[1000], maxval=k*10)
+  uniform = tf.random_uniform(shape=[1000], maxval=k*10)
   histogram_summary.op("uniform", uniform,
                        description="A simple uniform distribution.")
 
@@ -89,14 +88,14 @@ def run_all(logdir, verbose=False, num_summaries=400):
                                    "distribution, a Poisson distribution, and "
                                    "two normal distributions.")
 
-  summaries = tf.compat.v1.summary.merge_all()
+  summaries = tf.summary.merge_all()
 
   # Setup a session and summary writer
-  sess = tf.compat.v1.Session()
+  sess = tf.Session()
   writer = tf.summary.FileWriter(logdir)
 
   # Setup a loop and write the summaries to disk
-  N = num_summaries
+  N = 400
   for step in xrange(N):
     k_val = step/float(N)
     summ = sess.run(summaries, feed_dict={k: k_val})
@@ -110,4 +109,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run()

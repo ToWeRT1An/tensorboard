@@ -3,27 +3,19 @@ package(
     default_visibility = ["//tensorboard:internal"],
 )
 
-load("//tensorboard/defs:web.bzl", "tf_web_library", "tf_web_test")
+load("//tensorboard/defs:web.bzl", "tf_web_library")
 
 licenses(["notice"])  # Apache 2.0
 
-tf_web_test(
-    name = "test",
-    # TODO(@wchargin): This test does not work in headless mode.
-    tags = ["manual"],
-    web_library = ":test_web_library",
-    src = "/vz-projector/test/tests.html",
-)
-
 tf_web_library(
-    name = "test_web_library",
+    name = "test",
     srcs = [
-        "assert.js",
-        "data-provider_test.js",
-        "data_test.js",
-        "sptree_test.js",
+        "assert.ts",
+        "data-provider_test.ts",
+        "data_test.ts",
+        "sptree_test.ts",
         "tests.html",
-        "util_test.js",
+        "util_test.ts",
         # "scatterPlotRectangleSelector_test.ts",
         # "vz-projector-projections-panel_test.ts",
     ],

@@ -25,11 +25,10 @@ import threading
 
 import portpicker  # pylint: disable=import-error
 import tensorflow as tf
-from tensorflow.python import pywrap_tensorflow
 from werkzeug import wrappers
 from werkzeug import test as werkzeug_test
 
-from google.protobuf import json_format
+from google.protobuf  import json_format
 from tensorboard.backend import application
 from tensorboard.backend.event_processing import plugin_event_multiplexer as event_multiplexer  # pylint: disable=line-too-long
 from tensorboard.plugins import base_plugin
@@ -61,7 +60,7 @@ class DebuggerPluginTestBase(tf.test.TestCase):
     self.log_dir = self.get_temp_dir()
     file_prefix = tf.compat.as_bytes(
         os.path.join(self.log_dir, 'events.debugger'))
-    writer = pywrap_tensorflow.EventsWriter(file_prefix)
+    writer = tf.pywrap_tensorflow.EventsWriter(file_prefix)
     device_name = '/job:localhost/replica:0/task:0/cpu:0'
     writer.WriteEvent(
         self._CreateEventWithDebugNumericSummary(
@@ -107,7 +106,7 @@ class DebuggerPluginTestBase(tf.test.TestCase):
     os.mkdir(run_foo_directory)
     file_prefix = tf.compat.as_bytes(
         os.path.join(run_foo_directory, 'events.debugger'))
-    writer = pywrap_tensorflow.EventsWriter(file_prefix)
+    writer = tf.pywrap_tensorflow.EventsWriter(file_prefix)
     writer.WriteEvent(
         self._CreateEventWithDebugNumericSummary(
             device_name=device_name,
@@ -127,15 +126,15 @@ class DebuggerPluginTestBase(tf.test.TestCase):
     self.debugger_data_server_grpc_port = portpicker.pick_unused_port()
 
     # Fake threading behavior so that threads are synchronous.
-    tf.compat.v1.test.mock.patch('threading.Thread.start', threading.Thread.run).start()
+    tf.test.mock.patch('threading.Thread.start', threading.Thread.run).start()
 
-    self.mock_debugger_data_server = tf.compat.v1.test.mock.Mock(
+    self.mock_debugger_data_server = tf.test.mock.Mock(
         debugger_server_lib.DebuggerDataServer)
-    self.mock_debugger_data_server_class = tf.compat.v1.test.mock.Mock(
+    self.mock_debugger_data_server_class = tf.test.mock.Mock(
         debugger_server_lib.DebuggerDataServer,
         return_value=self.mock_debugger_data_server)
 
-    tf.compat.v1.test.mock.patch.object(
+    tf.test.mock.patch.object(
         debugger_server_lib,
         'DebuggerDataServer',
         self.mock_debugger_data_server_class).start()
@@ -159,14 +158,11 @@ class DebuggerPluginTestBase(tf.test.TestCase):
 
   def tearDown(self):
     # Remove the directory with debugger-related events files.
-    tf.compat.v1.test.mock.patch.stopall()
+    tf.test.mock.patch.stopall()
 
   def _CreateEventWithDebugNumericSummary(
       self, device_name, op_name, output_slot, wall_time, step, list_of_values):
     """Creates event with a health pill summary.
-
-    Note the debugger plugin only works with TensorFlow and, thus, uses TF
-    protos and TF EventsWriter.
 
     Args:
       device_name: The name of the op's device.
@@ -179,13 +175,12 @@ class DebuggerPluginTestBase(tf.test.TestCase):
     Returns:
       A `tf.Event` with a health pill summary.
     """
-    event = tf.compat.v1.Event(step=step, wall_time=wall_time)
-    tensor = tf.compat.v1.make_tensor_proto(
-        list_of_values, dtype=tf.float64, shape=[len(list_of_values)])
+    event = tf.Event(step=step, wall_time=wall_time)
     value = event.summary.value.add(
         tag=op_name,
         node_name='%s:%d:DebugNumericSummary' % (op_name, output_slot),
-        tensor=tensor)
+        tensor=tf.make_tensor_proto(
+            list_of_values, dtype=tf.float64, shape=[len(list_of_values)]))
     content_proto = debugger_event_metadata_pb2.DebuggerEventMetadata(
         device=device_name, output_slot=output_slot)
     value.metadata.plugin_data.plugin_name = constants.DEBUGGER_PLUGIN_NAME

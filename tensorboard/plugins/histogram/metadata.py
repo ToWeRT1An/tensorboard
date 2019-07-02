@@ -18,11 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorboard.compat.proto import summary_pb2
+import tensorflow as tf
 from tensorboard.plugins.histogram import plugin_data_pb2
-from tensorboard.util import tb_logging
 
-logger = tb_logging.get_logger()
 
 PLUGIN_NAME = 'histograms'
 
@@ -32,16 +30,16 @@ PROTO_VERSION = 0
 
 
 def create_summary_metadata(display_name, description):
-  """Create a `summary_pb2.SummaryMetadata` proto for histogram plugin data.
+  """Create a `tf.SummaryMetadata` proto for histogram plugin data.
 
   Returns:
-    A `summary_pb2.SummaryMetadata` protobuf object.
+    A `tf.SummaryMetadata` protobuf object.
   """
   content = plugin_data_pb2.HistogramPluginData(version=PROTO_VERSION)
-  return summary_pb2.SummaryMetadata(
+  return tf.SummaryMetadata(
       display_name=display_name,
       summary_description=description,
-      plugin_data=summary_pb2.SummaryMetadata.PluginData(
+      plugin_data=tf.SummaryMetadata.PluginData(
           plugin_name=PLUGIN_NAME,
           content=content.SerializeToString()))
 
@@ -56,17 +54,20 @@ def parse_plugin_metadata(content):
   Returns:
     A `HistogramPluginData` protobuf object.
   """
-  if not isinstance(content, bytes):
-    raise TypeError('Content type must be bytes')
-  if content == b'{}':
+  if content == '{}' or content == b'{}':
     # Old-style JSON format. Equivalent to an all-default proto.
     return plugin_data_pb2.HistogramPluginData()
   else:
-    result = plugin_data_pb2.HistogramPluginData.FromString(content)
+    result = plugin_data_pb2.HistogramPluginData()
+    # TODO(@jart): Instead of converting to bytes, assert that the input
+    # is a bytestring, and raise a ValueError otherwise...but only after
+    # converting `PluginData`'s `content` field to have type `bytes`
+    # instead of `string`.
+    result.ParseFromString(tf.compat.as_bytes(content))
     if result.version == 0:
       return result
     else:
-      logger.warn(
+      tf.logging.warn(
           'Unknown metadata version: %s. The latest version known to '
           'this build of TensorBoard is %s; perhaps a newer build is '
           'available?', result.version, PROTO_VERSION)

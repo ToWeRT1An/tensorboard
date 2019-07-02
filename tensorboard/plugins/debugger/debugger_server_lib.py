@@ -37,10 +37,6 @@ from tensorboard.plugins.debugger import constants
 from tensorboard.plugins.debugger import events_writer_manager as events_writer_manager_lib
 # pylint: enable=line-too-long
 from tensorboard.plugins.debugger import numerics_alert
-from tensorboard.util import tb_logging
-from tensorboard.util import tensor_util
-
-logger = tb_logging.get_logger()
 
 
 class DebuggerDataStreamHandler(
@@ -118,7 +114,7 @@ class DebuggerDataStreamHandler(
       event: The Event proto to be processed.
     """
     if not event.summary.value:
-      logger.warn("The summary of the event lacks a value.")
+      tf.logging.warn("The summary of the event lacks a value.")
       return
 
     # The node name property is actually a watch key, which is a concatenation
@@ -135,16 +131,16 @@ class DebuggerDataStreamHandler(
     node_name_and_output_slot = watch_key[
         :-len(constants.DEBUG_NUMERIC_SUMMARY_SUFFIX)]
 
-    shape = tensor_util.make_ndarray(event.summary.value[0].tensor).shape
+    shape = tf.make_ndarray(event.summary.value[0].tensor).shape
     if (len(shape) != 1 or
         shape[0] < constants.MIN_DEBUG_NUMERIC_SUMMARY_TENSOR_LENGTH):
-      logger.warn("Health-pill tensor either lacks a dimension or is "
+      tf.logging.warning("Health-pill tensor either lacks a dimension or is "
                          "shaped incorrectly: %s" % shape)
       return
 
     match = re.match(r"^(.*):(\d+)$", node_name_and_output_slot)
     if not match:
-      logger.warn(
+      tf.logging.warning(
           ("A event with a health pill has an invalid node name and output "
            "slot combination, (i.e., an unexpected debug op): %r"),
           node_name_and_output_slot)
@@ -180,7 +176,7 @@ class DebuggerDataStreamHandler(
     try:
       metadata = json.loads(metadata_string)
     except ValueError as e:
-      logger.error(
+      tf.logging.error(
           "Could not decode metadata string '%s' for step value: %s",
           metadata_string, e)
       return constants.SENTINEL_FOR_UNDETERMINED_STEP
@@ -188,7 +184,7 @@ class DebuggerDataStreamHandler(
     try:
       return metadata["session_run_index"]
     except KeyError:
-      logger.error(
+      tf.logging.error(
           "The session_run_index is missing from the metadata: %s",
           metadata_string)
       return constants.SENTINEL_FOR_UNDETERMINED_STEP
@@ -221,13 +217,13 @@ class DebuggerDataServer(grpc_debug_server.EventListenerBaseServicer):
     debugger_directory = os.path.join(
         os.path.expanduser(logdir), constants.DEBUGGER_DATA_DIRECTORY_NAME)
 
-    if not tf.io.gfile.exists(debugger_directory):
+    if not tf.gfile.Exists(debugger_directory):
       try:
-        tf.io.gfile.makedirs(debugger_directory)
-        logger.info("Created directory for debugger data: %s",
+        tf.gfile.MakeDirs(debugger_directory)
+        tf.logging.info("Created directory for debugger data: %s",
                         debugger_directory)
-      except tf.errors.OpError as e:
-        logger.fatal(
+      except tf.OpError as e:
+        tf.logging.fatal(
             "Could not make directory for debugger data: %s. Error: %s",
             debugger_directory, e)
 
@@ -242,10 +238,10 @@ class DebuggerDataServer(grpc_debug_server.EventListenerBaseServicer):
     # TensorBoard.
     try:
       self._events_writer_manager.write_event(
-          tf.compat.v1.Event(
+          tf.Event(
               wall_time=0, step=0, file_version=constants.EVENTS_VERSION))
     except IOError as e:
-      logger.error(
+      tf.logging.error(
           "Writing to %s failed: %s",
           self._events_writer_manager.get_current_file_name(), e)
 
@@ -254,15 +250,15 @@ class DebuggerDataServer(grpc_debug_server.EventListenerBaseServicer):
         debugger_directory, constants.ALERT_REGISTRY_BACKUP_FILE_NAME)
     initial_data = None
 
-    if tf.io.gfile.exists(self._registry_backup_file_path):
+    if tf.gfile.Exists(self._registry_backup_file_path):
       # A backup file exists. Read its contents to use for initialization.
-      with tf.io.gfile.GFile(self._registry_backup_file_path, "r") as backup_file:
+      with tf.gfile.Open(self._registry_backup_file_path, "r") as backup_file:
         try:
           # Use the data to initialize the registry.
           initial_data = json.load(backup_file)
         except ValueError as err:
           # Could not parse the data. No backup data obtained.
-          logger.error(
+          tf.logging.error(
               "Could not parse contents of %s: %s",
               self._registry_backup_file_path, err)
 

@@ -40,27 +40,26 @@ handle these situations gracefully.
   <style include="run-color-style"></style>
 
   <template>
-    <paper-input
-      id="names-regex"
-      no-label-float
-      label="Write a regex to filter runs"
-      value="[[regex]]"
-      on-bind-value-changed="_debouncedRegexChange"
-    ></paper-input>
+      <paper-input
+        id="runs-regex"
+        no-label-float
+        label="Write a regex to filter runs"
+        value="[[regexInput]]"
+        on-bind-value-changed="_debouncedRegexChange"
+      ></paper-input>
     <div id="outer-container" class="scrollbar">
       <template
         is="dom-repeat"
         items="[[namesMatchingRegex]]"
       >
         <div
-          class="name-row"
+          class="run-row"
         >
           <div class="icon-container checkbox-container vertical-align-container">
             <paper-checkbox
               class="checkbox vertical-align-center"
-              id$="checkbox-[[item]]"
               name="[[item]]"
-              checked$="[[_isChecked(item, selectionState.*)]]"
+              checked$="[[_isChecked(item, runSelectionState.*)]]"
               on-change="_checkboxChange"
             ></paper-checkbox>
 
@@ -69,7 +68,7 @@ handle these situations gracefully.
             <paper-icon-button
               icon="radio-button-unchecked"
               class="isolator vertical-align-center"
-              on-tap="_isolateName"
+              on-tap="_isolateRun"
               name="[[item]]"
             ></paper-icon-button>
           </div>
@@ -93,23 +92,22 @@ handle these situations gracefully.
       display: flex;
       flex-direction: column;
       height: 100%;
-      overflow: hidden;
     }
     #outer-container {
       overflow-y: auto;
       overflow-x: hidden;
       width: 100%;
+      height: 0; /* Quirk to make firefox add scrolling instead of expand div */
       flex-grow: 1;
       flex-shrink: 1;
       word-wrap: break-word;
     }
-    .name-row {
+    .run-row {
       padding-top: 5px;
       padding-bottom: 5px;
       display: flex;
       flex-direction: row;
       font-size: 13px;
-      word-break: break-all; /* makes wrapping of hyperparam strings better */
     }
     .icon-container {
       flex-grow: 0;

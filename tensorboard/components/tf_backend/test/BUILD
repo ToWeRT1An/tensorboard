@@ -3,22 +3,16 @@ package(
     default_visibility = ["//tensorboard:internal"],
 )
 
-load("//tensorboard/defs:web.bzl", "tf_web_library", "tf_web_test")
+load("//tensorboard/defs:web.bzl", "tf_web_library")
 
 licenses(["notice"])  # Apache 2.0
 
-tf_web_test(
-    name = "test",
-    web_library = ":test_web_library",
-    src = "/tf-backend/test/tests.html",
-)
-
 tf_web_library(
-    name = "test_web_library",
+    name = "test",
     srcs = [
         "tests.html",
-        "backendTests.js",
-        "requestManagerTests.js",
+        "backendTests.ts",
+        "requestManagerTests.ts",
     ] + glob(["data/**"]),
     path = "/tf-backend/test",
     deps = [

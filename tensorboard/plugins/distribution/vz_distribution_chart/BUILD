@@ -8,7 +8,7 @@ tf_web_library(
     name = "vz_distribution_chart",
     srcs = [
         "vz-distribution-chart.html",
-        "vz-distribution-chart.js",
+        "vz-distribution-chart.ts",
     ],
     path = "/vz-distribution-chart",
     visibility = ["//visibility:public"],
@@ -16,7 +16,7 @@ tf_web_library(
         "//tensorboard/components/tf_imports:lodash",
         "//tensorboard/components/tf_imports:plottable",
         "//tensorboard/components/tf_imports:polymer",
-        "//tensorboard/components/vz_chart_helpers",
+        "//tensorboard/components/vz_line_chart",
     ],
 )
 

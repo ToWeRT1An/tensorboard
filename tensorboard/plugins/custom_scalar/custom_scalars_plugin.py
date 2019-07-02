@@ -29,18 +29,15 @@ import re
 
 from google.protobuf import json_format
 import numpy as np
-
+import tensorflow as tf
 from werkzeug import wrappers
 
 from tensorboard.backend import http_util
-from tensorboard.compat import tf
 from tensorboard.plugins import base_plugin
 from tensorboard.plugins.custom_scalar import layout_pb2
 from tensorboard.plugins.custom_scalar import metadata
 from tensorboard.plugins.scalar import metadata as scalars_metadata
 from tensorboard.plugins.scalar import scalars_plugin
-from tensorboard.util import tensor_util
-
 
 # The name of the property in the response for whether the regex is valid.
 _REGEX_VALID_PROPERTY = 'regex_valid'
@@ -107,12 +104,6 @@ class CustomScalarsPlugin(base_plugin.TBPlugin):
     # This plugin is active if any run has a layout.
     return bool(self._multiplexer.PluginRunToTagToContent(metadata.PLUGIN_NAME))
 
-  def frontend_metadata(self):
-    return super(CustomScalarsPlugin, self).frontend_metadata()._replace(
-        element_name='tf-custom-scalar-dashboard',
-        tab_name='Custom Scalars',
-    )
-
   @wrappers.Request.application
   def download_data_route(self, request):
     run = request.args.get('run')
@@ -151,7 +142,7 @@ class CustomScalarsPlugin(base_plugin.TBPlugin):
                         'The scalars plugin is oddly not registered.'))
 
     body, mime_type = scalars_plugin_instance.scalars_impl(
-        tag, run, None, response_format)
+        tag, run, response_format)
     return body, mime_type
 
   @wrappers.Request.application
@@ -235,11 +226,9 @@ class CustomScalarsPlugin(base_plugin.TBPlugin):
                           'The scalars plugin is oddly not registered.'))
 
       form = scalars_plugin.OutputFormat.JSON
-      payload = {
-        tag: scalars_plugin_instance.scalars_impl(tag, run, None, form)[0]
-            for tag in tag_to_data.keys()
-            if regex.match(tag)
-      }
+      payload = {tag: scalars_plugin_instance.scalars_impl(tag, run, form)[0]
+                 for tag in tag_to_data.keys()
+                 if regex.match(tag)}
 
     return {
         _REGEX_VALID_PROPERTY: True,
@@ -276,7 +265,7 @@ class CustomScalarsPlugin(base_plugin.TBPlugin):
           run, metadata.CONFIG_SUMMARY_TAG)
 
       # This run has a layout. Merge it with the ones currently found.
-      string_array = tensor_util.make_ndarray(tensor_events[0].tensor_proto)
+      string_array = tf.make_ndarray(tensor_events[0].tensor_proto)
       content = np.asscalar(string_array)
       layout_proto = layout_pb2.Layout()
       layout_proto.ParseFromString(tf.compat.as_bytes(content))
@@ -286,11 +275,8 @@ class CustomScalarsPlugin(base_plugin.TBPlugin):
         for category in layout_proto.category:
           if category.title in title_to_category:
             # A category with this name has been seen before. Do not create a
-            # new one. Merge their charts, skipping any duplicates.
-            title_to_category[category.title].chart.extend([
-                c for c in category.chart
-                if c not in title_to_category[category.title].chart
-            ])
+            # new one. Merge their charts.
+            title_to_category[category.title].chart.extend(category.chart)
           else:
             # This category has not been seen before.
             merged_layout.category.add().MergeFrom(category)

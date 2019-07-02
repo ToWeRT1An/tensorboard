@@ -39,11 +39,11 @@ import com.google.javascript.jscomp.DiagnosticGroup;
 import com.google.javascript.jscomp.DiagnosticGroups;
 import com.google.javascript.jscomp.DiagnosticType;
 import com.google.javascript.jscomp.JSError;
+import com.google.javascript.jscomp.ModuleIdentifier;
 import com.google.javascript.jscomp.PropertyRenamingPolicy;
 import com.google.javascript.jscomp.Result;
 import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.WarningsGuard;
-import com.google.javascript.jscomp.deps.ModuleLoader;
 import com.google.protobuf.TextFormat;
 import io.bazel.rules.closure.Webpath;
 import io.bazel.rules.closure.webfiles.BuildInfo.Webfiles;
@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Comment;
@@ -118,8 +119,6 @@ public final class Vulcanize {
   // This is the default argument to Vulcanize for when the path_regexs_for_noinline attribute in
   // third_party/tensorboard/defs/vulcanize.bzl is not set.
   private static final String NO_NOINLINE_FILE_PROVIDED = "NO_REGEXS";
-
-  private static final Pattern ABS_URI_PATTERN = Pattern.compile("^(?:/|[A-Za-z][A-Za-z0-9+.-]*:)");
 
   public static void main(String[] args) throws IOException {
     compilationLevel = CompilationLevel.fromString(args[0]);
@@ -318,7 +317,6 @@ public final class Vulcanize {
     } else {
       path = me().lookup(Webpath.get(node.attr("src")));
       script = new String(Files.readAllBytes(getWebfile(path)), UTF_8);
-      script = INLINE_SOURCE_MAP_PATTERN.matcher(script).replaceAll("");
     }
     boolean wantsMinify = getAttrTransitive(node, "jscomp-minify").isPresent();
     if (node.attr("src").endsWith(".min.js")
@@ -416,7 +414,6 @@ public final class Vulcanize {
 
     CompilerOptions options = new CompilerOptions();
     compilationLevel.setOptionsForCompilationLevel(options);
-    options.setModuleResolutionMode(ModuleLoader.ResolutionMode.NODE);
 
     // Nice options.
     options.setColorizeErrorOutput(true);
@@ -440,17 +437,18 @@ public final class Vulcanize {
 
     // Dependency management.
     options.setClosurePass(true);
-    // TODO turn dependency pruning back on. ES6 modules are currently (incorrectly) considered
-    // moochers. Once the compiler no longer considers them moochers the dependencies will be in an
-    // incorrect order. The compiler will put moochers first, then other explicit entry points
-    // (if something is both an entry point and a moocher it goes first). vz-example-viewer.ts
-    // generates an ES6 module JS, and it will soon no longer be considered a moocher and be moved
-    // after its use in some moochers. To reenable dependency pruning, either the TS generation
-    // should not generate an ES6 module (a file with just goog.requires is a moocher!),
-    // or vz-example-viewer should be explicitly imported by the code that uses it. Alternatively,
-    // we could ensure that the input order to the compiler is correct and all inputs are used, and
-    // turn off both sorting and pruning.
-    options.setDependencyOptions(com.google.javascript.jscomp.DependencyOptions.sortOnly());
+    options.setManageClosureDependencies(true);
+    options.getDependencyOptions().setDependencyPruning(true);
+    options.getDependencyOptions().setDependencySorting(true);
+    options.getDependencyOptions().setMoocherDropping(false);
+    options.getDependencyOptions()
+        .setEntryPoints(
+            sourceTags
+                .keySet()
+                .stream()
+                .map(Webpath::toString)
+                .map(ModuleIdentifier::forFile)
+                .collect(Collectors.toList()));
 
     // Polymer pass.
     options.setPolymerVersion(1);
@@ -494,9 +492,9 @@ public final class Vulcanize {
             if (IGNORE_PATHS_PATTERN.matcher(error.sourceName).matches()) {
               return CheckLevel.OFF;
             }
-            if ((error.sourceName.startsWith("/tf-") || error.sourceName.startsWith("/vz-"))
+            if (error.sourceName.startsWith("/tf-graph")
                 && error.getType().key.equals("JSC_VAR_MULTIPLY_DECLARED_ERROR")) {
-              return CheckLevel.OFF; // TODO(@jart): Remove when tf/vz components/plugins are ES6 modules.
+              return CheckLevel.OFF; // TODO(@jart): Remove when tf-graph is ES6 modules.
             }
             if (error.getType().key.equals("JSC_POLYMER_UNQUALIFIED_BEHAVIOR")
                 || error.getType().key.equals("JSC_POLYMER_UNANNOTATED_BEHAVIOR")) {
@@ -616,22 +614,9 @@ public final class Vulcanize {
       return;
     }
     Webpath uri = Webpath.get(value);
-    // Form absolute path from uri if uri is not an absolute path.
-    // Note that webfiles is a map of absolute webpaths to relative filepaths.
-    Webpath absUri = isAbsolutePath(uri)
-        ? uri : me().getParent().resolve(uri).normalize();
-
-    if (webfiles.containsKey(absUri)) {
-      node.attr(attribute, outputPath.getParent().relativize(absUri).toString());
+    if (webfiles.containsKey(uri)) {
+      node.attr(attribute, outputPath.getParent().relativize(uri).toString());
     }
-  }
-
-  /**
-   * Checks whether a path is a absolute path.
-   * Webpath.isAbsolute does not take data uri and other forms of absolute path into account.
-   */
-  private static Boolean isAbsolutePath(Webpath path) {
-    return path.isAbsolute() || ABS_URI_PATTERN.matcher(path.toString()).find();
   }
 
   private static String getInlineScriptFromNode(Node node) {
@@ -673,7 +658,6 @@ public final class Vulcanize {
         || uri.contains("//")
         || uri.startsWith("data:")
         || uri.startsWith("javascript:")
-        || uri.startsWith("mailto:")
         // The following are intended to filter out URLs with Polymer variables.
         || (uri.contains("[[") && uri.contains("]]"))
         || (uri.contains("{{") && uri.contains("}}"));

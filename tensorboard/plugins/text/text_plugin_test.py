@@ -30,9 +30,6 @@ from tensorboard import plugin_util
 from tensorboard.backend.event_processing import plugin_event_multiplexer as event_multiplexer  # pylint: disable=line-too-long
 from tensorboard.plugins import base_plugin
 from tensorboard.plugins.text import text_plugin
-from tensorboard.util import test_util
-
-tf.compat.v1.disable_v2_behavior()
 
 GEMS = ['garnet', 'amethyst', 'pearl', 'steven']
 
@@ -54,39 +51,39 @@ class TextPluginTest(tf.test.TestCase):
     self.assertIsInstance(routes['/text'], collections.Callable)
 
   def generate_testdata(self, include_text=True, logdir=None):
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
-    placeholder = tf.compat.v1.placeholder(tf.string)
-    summary_tensor = tf.compat.v1.summary.text('message', placeholder)
-    vector_summary = tf.compat.v1.summary.text('vector', placeholder)
-    scalar_summary = tf.compat.v1.summary.scalar('twelve', tf.constant(12))
+    tf.reset_default_graph()
+    sess = tf.Session()
+    placeholder = tf.placeholder(tf.string)
+    summary_tensor = tf.summary.text('message', placeholder)
+    vector_summary = tf.summary.text('vector', placeholder)
+    scalar_summary = tf.summary.scalar('twelve', tf.constant(12))
 
     run_names = ['fry', 'leela']
     for run_name in run_names:
       subdir = os.path.join(logdir or self.logdir, run_name)
-      with test_util.FileWriterCache.get(subdir) as writer:
-        writer.add_graph(sess.graph)
+      writer = tf.summary.FileWriter(subdir)
+      writer.add_graph(sess.graph)
 
-        step = 0
-        for gem in GEMS:
-          message = run_name + ' *loves* ' + gem
-          feed_dict = {
-              placeholder: message,
-          }
-          if include_text:
-            summ = sess.run(summary_tensor, feed_dict=feed_dict)
-            writer.add_summary(summ, global_step=step)
-          step += 1
-
-        vector_message = ['one', 'two', 'three', 'four']
+      step = 0
+      for gem in GEMS:
+        message = run_name + ' *loves* ' + gem
+        feed_dict = {
+            placeholder: message,
+        }
         if include_text:
-          summ = sess.run(vector_summary,
-              feed_dict={placeholder: vector_message})
-          writer.add_summary(summ)
+          summ = sess.run(summary_tensor, feed_dict=feed_dict)
+          writer.add_summary(summ, global_step=step)
+        step += 1
 
-        summ = sess.run(scalar_summary, feed_dict={placeholder: []})
+      vector_message = ['one', 'two', 'three', 'four']
+      if include_text:
+        summ = sess.run(vector_summary, feed_dict={placeholder: vector_message})
         writer.add_summary(summ)
 
+      summ = sess.run(scalar_summary, feed_dict={placeholder: []})
+      writer.add_summary(summ)
+
+      writer.close()
 
   def testIndex(self):
     index = self.plugin.index_impl()
@@ -329,9 +326,9 @@ class TextPluginTest(tf.test.TestCase):
       </table>""")
     self.assertEqual(convert(d3), d3_expected)
 
-  def assertIsActive(self, plugin, expected_finally_is_active):
+  def assertIsActive(self, plugin, expected_is_active):
     """Helper to simulate threading for asserting on is_active()."""
-    patcher = tf.compat.v1.test.mock.patch('threading.Thread.start', autospec=True)
+    patcher = tf.test.mock.patch('threading.Thread.start', autospec=True)
     mock = patcher.start()
     self.addCleanup(patcher.stop)
 
@@ -349,7 +346,7 @@ class TextPluginTest(tf.test.TestCase):
     thread.run()
     self.assertIsNone(plugin._index_impl_thread)
 
-    if expected_finally_is_active:
+    if expected_is_active:
       self.assertTrue(plugin.is_active())
       # The call above shouldn't have launched a new thread.
       mock.assert_called_once_with(thread)
@@ -361,58 +358,43 @@ class TextPluginTest(tf.test.TestCase):
   def testPluginIsActiveWhenNoRuns(self):
     """The plugin should be inactive when there are no runs."""
     multiplexer = event_multiplexer.EventMultiplexer()
-    context = base_plugin.TBContext(logdir=self.logdir, multiplexer=multiplexer)
+    context = base_plugin.TBContext(logdir=None, multiplexer=multiplexer)
     plugin = text_plugin.TextPlugin(context)
     self.assertIsActive(plugin, False)
 
   def testPluginIsActiveWhenTextRuns(self):
     """The plugin should be active when there are runs with text."""
     multiplexer = event_multiplexer.EventMultiplexer()
-    context = base_plugin.TBContext(logdir=self.logdir, multiplexer=multiplexer)
+    context = base_plugin.TBContext(logdir=None, multiplexer=multiplexer)
     plugin = text_plugin.TextPlugin(context)
     multiplexer.AddRunsFromDirectory(self.logdir)
     multiplexer.Reload()
-
-    patcher = tf.compat.v1.test.mock.patch('threading.Thread.start', autospec=True)
-    mock = patcher.start()
-    self.addCleanup(patcher.stop)
-    self.assertTrue(plugin.is_active(), True)
-
-    # Data is available within the multiplexer. No thread should have started
-    # for checking plugin assets data.
-    self.assertFalse(mock.called)
+    self.assertIsActive(plugin, True)
 
   def testPluginIsActiveWhenRunsButNoText(self):
     """The plugin should be inactive when there are runs but none has text."""
-    logdir = os.path.join(self.get_temp_dir(), 'runs_with_no_text')
     multiplexer = event_multiplexer.EventMultiplexer()
-    context = base_plugin.TBContext(logdir=logdir, multiplexer=multiplexer)
+    context = base_plugin.TBContext(logdir=None, multiplexer=multiplexer)
     plugin = text_plugin.TextPlugin(context)
+    logdir = os.path.join(self.get_temp_dir(), 'runs_with_no_text')
     self.generate_testdata(include_text=False, logdir=logdir)
     multiplexer.AddRunsFromDirectory(logdir)
     multiplexer.Reload()
     self.assertIsActive(plugin, False)
 
   def testPluginTagsImpl(self):
-    patcher = tf.compat.v1.test.mock.patch('threading.Thread.start', autospec=True)
+    patcher = tf.test.mock.patch('threading.Thread.start', autospec=True)
     mock = patcher.start()
     self.addCleanup(patcher.stop)
 
-    # Initially, the thread for checking for plugin assets data has not run.
-    # Hence, the mapping should only have data from the multiplexer.
-    run_to_tags = self.plugin.tags_impl()
-    self.assertItemsEqual(['fry', 'leela'], run_to_tags.keys())
-    self.assertItemsEqual(['message', 'vector'], run_to_tags['fry'])
-    self.assertItemsEqual(['message', 'vector'], run_to_tags['leela'])
+    # Initially we have not computed index_impl() so we'll get the placeholder.
+    self.assertEqual({}, self.plugin.tags_impl())
     thread = self.plugin._index_impl_thread
     mock.assert_called_once_with(thread)
 
     # The thread hasn't run yet, so no change in response, and we should not
     # have tried to launch a second thread.
-    run_to_tags = self.plugin.tags_impl()
-    self.assertItemsEqual(['fry', 'leela'], run_to_tags.keys())
-    self.assertItemsEqual(['message', 'vector'], run_to_tags['fry'])
-    self.assertItemsEqual(['message', 'vector'], run_to_tags['leela'])
+    self.assertEqual({}, self.plugin.tags_impl())
     mock.assert_called_once_with(thread)
 
     # Run the thread; it should clean up after itself.
@@ -437,15 +419,15 @@ class TextPluginBackwardsCompatibilityTest(tf.test.TestCase):
     self.plugin = text_plugin.TextPlugin(context)
 
   def generate_testdata(self):
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
+    tf.reset_default_graph()
+    sess = tf.Session()
     placeholder = tf.constant('I am deprecated.')
 
     # Previously, we had used a means of creating text summaries that used
     # plugin assets (which loaded JSON files containing runs and tags). The
     # plugin must continue to be able to load summaries of that format, so we
     # create a summary using that old plugin asset-based method here.
-    plugin_asset_summary = tf.compat.v1.summary.tensor_summary('old_plugin_asset_summary',
+    plugin_asset_summary = tf.summary.tensor_summary('old_plugin_asset_summary',
                                                      placeholder)
     assets_directory = os.path.join(self.logdir, 'fry', 'plugins',
                                     'tensorboard_text')
@@ -464,11 +446,12 @@ class TextPluginBackwardsCompatibilityTest(tf.test.TestCase):
 
     run_name = 'fry'
     subdir = os.path.join(self.logdir, run_name)
-    with test_util.FileWriterCache.get(subdir) as writer:
-      writer.add_graph(sess.graph)
+    writer = tf.summary.FileWriter(subdir)
+    writer.add_graph(sess.graph)
 
-      summ = sess.run(plugin_asset_summary)
-      writer.add_summary(summ)
+    summ = sess.run(plugin_asset_summary)
+    writer.add_summary(summ)
+    writer.close()
 
   def testIndex(self):
     index = self.plugin.index_impl()

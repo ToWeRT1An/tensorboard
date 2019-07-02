@@ -30,13 +30,12 @@ tf-smoothing-input creates an input component for exponential smoothing.
     <div class="smoothing-block">
       <paper-slider
         id="slider"
-        immediate-value="{{_immediateWeightNumberForPaperSlider}}"
-        max="[[max]]"
-        min="[[min]]"
-        pin
-        step="[[step]]"
-        type="number"
         value="{{weight}}"
+        immediate-value="{{_immediateWeightNumberForPaperSlider}}"
+        type="number"
+        step="[[step]]"
+        min="[[min]]"
+        max="[[max]]"
         ></paper-slider>
       <paper-input
         id="input"
@@ -63,13 +62,9 @@ tf-smoothing-input creates an input component for exponential smoothing.
       }
 
       paper-slider {
-        --paper-slider-active-color: var(--tb-orange-strong);
+        margin-left: 12px;
         --paper-slider-knob-color: var(--tb-orange-strong);
-        --paper-slider-knob-start-border-color: var(--tb-orange-strong);
-        --paper-slider-knob-start-color: var(--tb-orange-strong);
-        --paper-slider-markers-color: var(--tb-orange-strong);
-        --paper-slider-pin-color: var(--tb-orange-strong);
-        --paper-slider-pin-start-color: var(--tb-orange-strong);
+        --paper-slider-active-color: var(--tb-orange-strong);
         flex-grow: 2;
       }
 

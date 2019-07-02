@@ -22,23 +22,21 @@ import inspect
 import math
 import os.path
 
-from absl import app
-from absl import flags
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from tensorboard.plugins.audio import summary
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
-flags.DEFINE_string('logdir', '/tmp/audio_demo',
+tf.flags.DEFINE_string('logdir', '/tmp/audio_demo',
                        'Directory into which to write TensorBoard data.')
 
-flags.DEFINE_integer('steps', 50,
+tf.flags.DEFINE_integer('steps', 50,
                         'Number of frequencies of each waveform to generate.')
 
 # Parameters for the audio output.
-flags.DEFINE_integer('sample_rate', 44100, 'Sample rate, in Hz.')
-flags.DEFINE_float('duration', 2.0, 'Duration of each waveform, in s.')
+tf.flags.DEFINE_integer('sample_rate', 44100, 'Sample rate, in Hz.')
+tf.flags.DEFINE_float('duration', 2.0, 'Duration of each waveform, in s.')
 
 
 def _samples():
@@ -63,12 +61,12 @@ def run(logdir, run_name, wave_name, wave_constructor):
     wave_name: the name of the wave being generated
     wave_constructor: see above
   """
-  tf.compat.v1.reset_default_graph()
-  tf.compat.v1.set_random_seed(0)
+  tf.reset_default_graph()
+  tf.set_random_seed(0)
 
   # On each step `i`, we'll set this placeholder to `i`. This allows us
   # to know "what time it is" at each step.
-  step_placeholder = tf.compat.v1.placeholder(tf.float32, shape=[])
+  step_placeholder = tf.placeholder(tf.float32, shape=[])
 
   # We want to linearly interpolate a frequency between A4 (440 Hz) and
   # A5 (880 Hz).
@@ -80,7 +78,7 @@ def run(logdir, run_name, wave_name, wave_constructor):
 
   # Let's log this frequency, just so that we can make sure that it's as
   # expected.
-  tf.compat.v1.summary.scalar('frequency', frequency)
+  tf.summary.scalar('frequency', frequency)
 
   # Now, we pass this to the wave constructor to get our waveform. Doing
   # so within a name scope means that any summaries that the wave
@@ -92,18 +90,18 @@ def run(logdir, run_name, wave_name, wave_constructor):
   # label. This is a good place to include the frequency, because it'll
   # be visible immediately next to the audio clip.
   with tf.name_scope('compute_labels'):
-    samples = tf.shape(input=waveform)[0]
+    samples = tf.shape(waveform)[0]
     wave_types = tf.tile(["*Wave type:* `%s`." % wave_name], [samples])
-    frequencies = tf.strings.join([
+    frequencies = tf.string_join([
         "*Frequency:* ",
         tf.tile([tf.as_string(frequency, precision=2)], [samples]),
         " Hz.",
     ])
-    samples = tf.strings.join([
+    samples = tf.string_join([
         "*Sample:* ", tf.as_string(tf.range(samples) + 1),
         " of ", tf.as_string(samples), ".",
     ])
-    labels = tf.strings.join([wave_types, frequencies, samples], separator=" ")
+    labels = tf.string_join([wave_types, frequencies, samples], separator=" ")
 
   # We can place a description next to the summary in TensorBoard. This
   # is a good place to explain what the summary represents, methodology
@@ -121,12 +119,12 @@ def run(logdir, run_name, wave_name, wave_constructor):
              description=description)
 
   # Now, we can collect up all the summaries and begin the run.
-  summ = tf.compat.v1.summary.merge_all()
+  summ = tf.summary.merge_all()
 
-  sess = tf.compat.v1.Session()
+  sess = tf.Session()
   writer = tf.summary.FileWriter(os.path.join(logdir, run_name))
   writer.add_graph(sess.graph)
-  sess.run(tf.compat.v1.global_variables_initializer())
+  sess.run(tf.global_variables_initializer())
   for step in xrange(FLAGS.steps):
     s = sess.run(summ, feed_dict={step_placeholder: float(step)})
     writer.add_summary(s, global_step=step)
@@ -258,4 +256,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run()

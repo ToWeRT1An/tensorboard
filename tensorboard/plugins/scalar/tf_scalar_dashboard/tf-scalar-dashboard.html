@@ -26,11 +26,9 @@ limitations under the License.
 <link rel="import" href="../tf-categorization-utils/tf-categorization-utils.html">
 <link rel="import" href="../tf-categorization-utils/tf-category-pane.html">
 <link rel="import" href="../tf-categorization-utils/tf-tag-filterer.html">
-<link rel="import" href="../tf-dashboard-common/array-update-helper.html">
 <link rel="import" href="../tf-dashboard-common/dashboard-style.html">
 <link rel="import" href="../tf-dashboard-common/tf-dashboard-layout.html">
 <link rel="import" href="../tf-dashboard-common/tf-option-selector.html">
-<link rel="import" href="../tf-globals/tf-globals.html">
 <link rel="import" href="../tf-imports/lodash.html">
 <link rel="import" href="../tf-paginated-view/tf-paginated-view.html">
 <link rel="import" href="../tf-runs-selector/tf-runs-selector.html">
@@ -53,18 +51,16 @@ limitations under the License.
         <div class="sidebar-section">
           <div class="line-item">
             <paper-checkbox
-              id="show-download-links"
               checked="{{_showDownloadLinks}}"
             >Show data download links</paper-checkbox>
           </div>
           <div class="line-item">
             <paper-checkbox
-              id="ignore-y-outlier"
               checked="{{_ignoreYOutliers}}"
             >Ignore outliers in chart scaling</paper-checkbox>
           </div>
           <div id="tooltip-sorting">
-            <div>Tooltip sorting method:</div>
+            <div id="tooltip-sorting-label">Tooltip sorting method:</div>
             <paper-dropdown-menu
               no-label-float
               selected-item-label="{{_tooltipSortingMethod}}"
@@ -83,7 +79,7 @@ limitations under the License.
             weight="{{_smoothingWeight}}"
             step="0.001"
             min="0"
-            max="0.999"
+            max="1"
           ></tf-smoothing-input>
         </div>
         <div class="sidebar-section">
@@ -125,11 +121,7 @@ limitations under the License.
         <template is="dom-if" if="[[!_dataNotFound]]">
           <tf-tag-filterer tag-filter="{{_tagFilter}}"></tf-tag-filterer>
           <template is="dom-repeat" items="[[_categories]]" as="category">
-            <tf-category-pane
-              category="[[category]]"
-              opened="[[_getPaneOpened(category)]]"
-              on-opened-changed="_onPaneOpenChanged"
-            >
+            <tf-category-pane category="[[category]]">
               <tf-paginated-view
                 items="[[category.items]]"
                 pages="{{category._pages}}"
@@ -139,17 +131,17 @@ limitations under the License.
                     <div class="layout horizontal wrap">
                       <template is="dom-repeat" items="[[page.items]]">
                         <tf-scalar-card
-                          active="[[page.active]]"
-                          data-to-load="[[item.series]]"
-                          ignore-y-outliers="[[_ignoreYOutliers]]"
-                          request-manager="[[_requestManager]]"
-                          show-download-links="[[_showDownloadLinks]]"
+                          x-type="[[_xType]]"
                           smoothing-enabled="[[_smoothingEnabled]]"
                           smoothing-weight="[[_smoothingWeight]]"
-                          tag-metadata="[[_tagMetadata(category, _runToTagInfo, item)]]"
-                          tag="[[item.tag]]"
                           tooltip-sorting-method="[[_tooltipSortingMethod]]"
-                          x-type="[[_xType]]"
+                          ignore-y-outliers="[[_ignoreYOutliers]]"
+                          show-download-links="[[_showDownloadLinks]]"
+                          request-manager="[[_requestManager]]"
+                          runs="[[item.runs]]"
+                          tag="[[item.tag]]"
+                          tag-metadata="[[_tagMetadata(_runToTagInfo, item.runs, item.tag)]]"
+                          active="[[page.active]]"
                         ></tf-scalar-card>
                       </template>
                     </div>
@@ -165,15 +157,20 @@ limitations under the License.
     <style include="dashboard-style"></style>
     <style>
       #tooltip-sorting {
-        align-items: center;
         display: flex;
         font-size: 14px;
-        margin-top: 15px;
+        margin-top: 5px;
+      }
+      #tooltip-sorting-label {
+        margin-top: 13px;
       }
       #tooltip-sorting paper-dropdown-menu {
         margin-left: 10px;
         --paper-input-container-focus-color: var(--tb-orange-strong);
         width: 105px;
+      }
+      #x-type-selector paper-button {
+        margin: 5px 3px;
       }
       .line-item {
         display: block;
@@ -183,16 +180,10 @@ limitations under the License.
         max-width: 540px;
         margin: 80px auto 0 auto;
       }
-      .center {
-        overflow-x: hidden;
-      }
     </style>
   </template>
 
   <script>
-    const PLUGIN_NAME = 'scalars';
-    const NUM_DEFAULT_OPENED_PANE = 3;
-
     Polymer({
       is: 'tf-scalar-dashboard',
       properties: {
@@ -219,36 +210,24 @@ limitations under the License.
               {defaultValue: true, useLocalStorage: true}),
           observer: '_ignoreYOutliersObserver',
         },
-
-        _paneOpened: {
-          type: Object,
-          value: () => ({}),
-        },
-
-        /** @type {vz_chart_helpers.XType} */
+        /** @type {vz_line_chart.XType} */
         _xType: {
           type: String,
-          value: vz_chart_helpers.XType.STEP,
+          value: vz_line_chart.XType.STEP,
         },
 
-        _selectedRuns: {
-          type: Array,
-          value: () => [],
-        },
+        _selectedRuns: Array,
         _runToTagInfo: Object,
         _dataNotFound: Boolean,
-        _tagFilter: {
-          type: String,
-          value: ''
-        },
+        _tagFilter: String,
         // Categories must only be computed after _dataNotFound is found to be
         // true and then polymer DOM templating responds to that finding. We
         // thus use this property to guard when categories are computed.
         _categoriesDomReady: Boolean,
-
         _categories: {
           type: Array,
-          value: () => [],
+          computed:
+            '_makeCategories(_runToTagInfo, _selectedRuns, _tagFilter, _categoriesDomReady)',
         },
 
         _requestManager: {
@@ -256,13 +235,6 @@ limitations under the License.
           value: () => new tf_backend.RequestManager(50),
         },
       },
-      behaviors: [
-        tf_dashboard_common.ArrayUpdateHelper,
-      ],
-      observers: [
-        '_updateCategories(_runToTagInfo, _selectedRuns, _tagFilter, _categoriesDomReady)',
-        '_updatePaneOpened(_categories.*)',
-      ],
       _showDownloadLinksObserver: tf_storage.getBooleanObserver(
           '_showDownloadLinks', {defaultValue: false, useLocalStorage: true}),
       _smoothingWeightObserver: tf_storage.getNumberObserver(
@@ -271,44 +243,6 @@ limitations under the License.
           '_ignoreYOutliers', {defaultValue: true, useLocalStorage: true}),
       _computeSmoothingEnabled(_smoothingWeight) {
         return _smoothingWeight > 0;
-      },
-
-      _getCategoryKey(category) {
-        return category.metadata.type ==
-            tf_categorization_utils.CategoryType.SEARCH_RESULTS ?
-                '' : category.name;
-      },
-
-      _updatePaneOpened() {
-        const paneOpen = this._paneOpened;
-        const newPaneOpened = {};
-
-        // Copy over the relevant values from the old pane state.
-        this._categories
-            .map(this._getCategoryKey)
-            .filter(name => paneOpen[name] != null)
-            .forEach(name => newPaneOpened[name] = paneOpen[name]);
-
-        if (Object.keys(newPaneOpened).length == 0) {
-          this._categories.slice(0, NUM_DEFAULT_OPENED_PANE)
-              .map(this._getCategoryKey)
-              .forEach(name => {
-                newPaneOpened[name] = true;
-              });
-        }
-
-        this._paneOpened = newPaneOpened;
-      },
-
-      _getPaneOpened(category) {
-        return this._paneOpened[this._getCategoryKey(category)];
-      },
-
-      _onPaneOpenChanged(event) {
-        // The event can be triggered without the pane being mounted.
-        if (!this.isAttached || !event.target.isAttached) return;
-        const name = this._getCategoryKey(event.target.category);
-        this._paneOpened[name] = event.detail.value;
       },
 
       ready() {
@@ -342,45 +276,27 @@ limitations under the License.
         });
       },
 
-      _updateCategories(
+      _makeCategories(
           runToTagInfo, selectedRuns, tagFilter, categoriesDomReady) {
-        let categories;
-        let query = tagFilter;
         const runToTag = _.mapValues(runToTagInfo, x => Object.keys(x));
-        categories = tf_categorization_utils.categorizeTags(
-            runToTag, selectedRuns, query);
-        categories.forEach(category => {
-          category.items = category.items.map(item => ({
-            tag: item.tag,
-            series: item.runs.map(run => ({run, tag: item.tag})),
-          }));
-        });
-        this.updateArrayProp('_categories', categories, this._getCategoryKey);
+        return tf_categorization_utils.categorizeTags(runToTag, selectedRuns, tagFilter);
       },
-
-      _tagMetadata(category, runToTagsInfo, item) {
-        const tag = item.tag;
+      _tagMetadata(runToTagsInfo, runs, tag) {
         const runToTagInfo = {};
-        item.series.forEach(({run}) => {
+        runs.forEach(run => {
             runToTagInfo[run] = runToTagsInfo[run][tag];
         });
         // All new-style scalar tags include the `/scalar_summary`
         // suffix. We can trim that from the display name.
         const defaultDisplayName = tag.replace(/\/scalar_summary$/, '');
-        let {description, displayName} = tf_utils.aggregateTagInfo(
-            runToTagInfo,
-            defaultDisplayName);
-
-        // If category name is a prefix group, strip the prefix from the name
-        // of the scalar-card if name != prefix.
-        if (category.metadata.type ==
-            tf_categorization_utils.CategoryType.PREFIX_GROUP &&
-            displayName.startsWith(category.name + '/')) {
-          // + 1 to strip off the separator.
-          displayName = displayName.slice(category.name.length + 1);
-        }
-        return {description, displayName};
+        return tf_utils.aggregateTagInfo(runToTagInfo, defaultDisplayName);
       },
     });
+
+    tf_tensorboard.registerDashboard({
+      plugin: 'scalars',
+      elementName: 'tf-scalar-dashboard',
+    });
+
   </script>
 </dom-module>

@@ -18,22 +18,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from absl import app
-from absl import logging
 import contextlib
 import os.path
 import textwrap
 
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
-
 import tensorflow as tf
 
-from tensorboard.compat.proto import config_pb2
 from tensorboard.plugins.image import summary as image_summary
-from tensorboard.util import tb_logging
 
-logger = tb_logging.get_logger()
 
 # Directory into which to write tensorboard data.
 LOGDIR = '/tmp/images_demo'
@@ -59,7 +53,7 @@ def image_data(verbose=False):
   global _IMAGE_DATA  # pylint: disable=global-statement
   if _IMAGE_DATA is None:
     if verbose:
-      logger.info("--- Downloading image.")
+      tf.logging.info("--- Downloading image.")
     with contextlib.closing(urllib.request.urlopen(IMAGE_URL)) as infile:
       _IMAGE_DATA = infile.read()
   return _IMAGE_DATA
@@ -85,7 +79,7 @@ def convolve(image, pixel_filter, channels=3, name=None):
     A 3D `float32` `Tensor` of the same shape as the input.
   """
   with tf.name_scope(name, 'convolve'):
-    tf.compat.v1.assert_type(image, tf.float32)
+    tf.assert_type(image, tf.float32)
     channel_filter = tf.eye(channels)
     filter_ = (tf.expand_dims(tf.expand_dims(pixel_filter, -1), -1) *
                tf.expand_dims(tf.expand_dims(channel_filter, 0), 0))
@@ -119,18 +113,18 @@ def run_box_to_gaussian(logdir, verbose=False):
     verbose: Boolean; whether to log any output.
   """
   if verbose:
-    logger.info('--- Starting run: box_to_gaussian')
+    tf.logging.info('--- Starting run: box_to_gaussian')
 
-  tf.compat.v1.reset_default_graph()
-  tf.compat.v1.set_random_seed(0)
+  tf.reset_default_graph()
+  tf.set_random_seed(0)
 
   image = get_image(verbose=verbose)
-  blur_radius = tf.compat.v1.placeholder(shape=(), dtype=tf.int32)
+  blur_radius = tf.placeholder(shape=(), dtype=tf.int32)
   with tf.name_scope('filter'):
     blur_side_length = blur_radius * 2 + 1
     pixel_filter = tf.ones((blur_side_length, blur_side_length))
     pixel_filter = (pixel_filter
-                    / tf.cast(tf.size(input=pixel_filter), tf.float32))  # normalize
+                    / tf.cast(tf.size(pixel_filter), tf.float32))  # normalize
 
   iterations = 4
   images = [tf.cast(image, tf.float32) / 255.0]
@@ -174,16 +168,16 @@ def run_box_to_gaussian(logdir, verbose=False):
                    % ('http://elynxsdk.free.fr/ext-docs/Blur/Fast_box_blur.pdf',
                       IMAGE_CREDIT)))
 
-  with tf.compat.v1.Session() as sess:
+  with tf.Session() as sess:
     sess.run(image.initializer)
     writer = tf.summary.FileWriter(os.path.join(logdir, 'box_to_gaussian'))
     writer.add_graph(sess.graph)
     for step in xrange(8):
       if verbose:
-        logger.info('--- box_to_gaussian: step: %s' % step)
+        tf.logging.info('--- box_to_gaussian: step: %s' % step)
         feed_dict = {blur_radius: step}
-      run_options = tf.compat.v1.RunOptions(trace_level=tf.compat.v1.RunOptions.FULL_TRACE)
-      run_metadata = config_pb2.RunMetadata()
+      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      run_metadata = tf.RunMetadata()
       s = sess.run(summ, feed_dict=feed_dict,
                    options=run_options, run_metadata=run_metadata)
       writer.add_summary(s, global_step=step)
@@ -201,13 +195,13 @@ def run_sobel(logdir, verbose=False):
     verbose: Boolean; whether to log any output.
   """
   if verbose:
-    logger.info('--- Starting run: sobel')
+    tf.logging.info('--- Starting run: sobel')
 
-  tf.compat.v1.reset_default_graph()
-  tf.compat.v1.set_random_seed(0)
+  tf.reset_default_graph()
+  tf.set_random_seed(0)
 
   image = get_image(verbose=verbose)
-  kernel_radius = tf.compat.v1.placeholder(shape=(), dtype=tf.int32)
+  kernel_radius = tf.placeholder(shape=(), dtype=tf.int32)
 
   with tf.name_scope('horizontal_kernel'):
     kernel_side_length = kernel_radius * 2 + 1
@@ -219,14 +213,14 @@ def run_sobel(logdir, verbose=False):
                                   tf.expand_dims(differentiation_kernel, 0))
 
   with tf.name_scope('vertical_kernel'):
-    vertical_kernel = tf.transpose(a=horizontal_kernel)
+    vertical_kernel = tf.transpose(horizontal_kernel)
 
   float_image = tf.cast(image, tf.float32)
   dx = convolve(float_image, horizontal_kernel, name='convolve_dx')
   dy = convolve(float_image, vertical_kernel, name='convolve_dy')
-  gradient_magnitude = tf.norm(tensor=[dx, dy], axis=0, name='gradient_magnitude')
+  gradient_magnitude = tf.norm([dx, dy], axis=0, name='gradient_magnitude')
   with tf.name_scope('normalized_gradient'):
-    normalized_gradient = gradient_magnitude / tf.reduce_max(input_tensor=gradient_magnitude)
+    normalized_gradient = gradient_magnitude / tf.reduce_max(gradient_magnitude)
   with tf.name_scope('output_image'):
     output_image = tf.cast(255 * normalized_gradient, tf.uint8)
 
@@ -248,16 +242,16 @@ def run_sobel(logdir, verbose=False):
                    % ('https://en.wikipedia.org/wiki/Sobel_operator',
                       IMAGE_CREDIT)))
 
-  with tf.compat.v1.Session() as sess:
+  with tf.Session() as sess:
     sess.run(image.initializer)
     writer = tf.summary.FileWriter(os.path.join(logdir, 'sobel'))
     writer.add_graph(sess.graph)
     for step in xrange(8):
       if verbose:
-        logger.info("--- sobel: step: %s" % step)
+        tf.logging.info("--- sobel: step: %s" % step)
         feed_dict = {kernel_radius: step}
-      run_options = tf.compat.v1.RunOptions(trace_level=tf.compat.v1.RunOptions.FULL_TRACE)
-      run_metadata = config_pb2.RunMetadata()
+      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      run_metadata = tf.RunMetadata()
       s = sess.run(summ, feed_dict=feed_dict,
                    options=run_options, run_metadata=run_metadata)
       writer.add_summary(s, global_step=step)
@@ -277,11 +271,11 @@ def run_all(logdir, verbose=False):
 
 
 def main(unused_argv):
-  logging.set_verbosity(logging.INFO)
-  logger.info('Saving output to %s.' % LOGDIR)
+  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.info('Saving output to %s.' % LOGDIR)
   run_all(LOGDIR, verbose=True)
-  logger.info('Done. Output saved to %s.' % LOGDIR)
+  tf.logging.info('Done. Output saved to %s.' % LOGDIR)
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run()

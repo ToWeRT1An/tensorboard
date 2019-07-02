@@ -21,7 +21,6 @@ TAG_NAME = 'beholder-frame'
 SUMMARY_FILENAME = 'frame.summary'
 CONFIG_FILENAME = 'config.pkl'
 SECTION_INFO_FILENAME = 'section-info.pkl'
-SUMMARY_COLLECTION_KEY_NAME = 'summaries_beholder'
 
 DEFAULT_CONFIG = {
     'values': 'trainable_variables',

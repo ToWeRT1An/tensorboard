@@ -14,11 +14,9 @@
 
 # TensorBoard external dependencies that can be loaded in WORKSPACE files.
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@io_bazel_rules_closure//closure/private:java_import_external.bzl", "java_import_external")
 load("@io_bazel_rules_closure//closure:defs.bzl", "filegroup_external")
 load("@io_bazel_rules_closure//closure:defs.bzl", "web_library_external")
-load("@io_bazel_rules_webtesting//web/internal:platform_http_file.bzl", "platform_http_file")
 load("//third_party:fonts.bzl", "tensorboard_fonts_workspace")
 load("//third_party:polymer.bzl", "tensorboard_polymer_workspace")
 load("//third_party:python.bzl", "tensorboard_python_workspace")
@@ -26,22 +24,35 @@ load("//third_party:js.bzl", "tensorboard_js_workspace")
 load("//third_party:typings.bzl", "tensorboard_typings_workspace")
 
 def tensorboard_workspace():
-  """Add repositories needed to build TensorBoard."""
   tensorboard_fonts_workspace()
   tensorboard_polymer_workspace()
   tensorboard_python_workspace()
   tensorboard_typings_workspace()
   tensorboard_js_workspace()
 
-  http_archive(
-      name = "com_google_protobuf_js",
-      strip_prefix = "protobuf-3.6.0/js",
-      sha256 = "50a5753995b3142627ac55cfd496cebc418a2e575ca0236e29033c67bd5665f4",
+  native.http_archive(
+      name = "protobuf",
       urls = [
-          "http://mirror.tensorflow.org/github.com/google/protobuf/archive/v3.6.0.tar.gz",
-          "https://github.com/google/protobuf/archive/v3.6.0.tar.gz",
+          "http://mirror.bazel.build/github.com/google/protobuf/archive/v3.4.1.tar.gz",
+          "https://github.com/google/protobuf/archive/v3.4.1.tar.gz",
       ],
-      build_file = "@io_bazel_rules_closure//closure/protobuf:protobuf_js.BUILD",
+      sha256 = "8e0236242106e680b4f9f576cc44b8cd711e948b20a9fc07769b0a20ceab9cc4",
+      strip_prefix = "protobuf-3.4.1",
+      # TODO: remove patching when tensorflow stops linking same protos into
+      #       multiple shared libraries loaded in runtime by python.
+      #       This patch fixes a runtime crash when tensorflow is compiled
+      #       with clang -O2 on Linux (see https://github.com/tensorflow/tensorflow/issues/8394)
+      # patch_file = str(Label("//third_party/protobuf:add_noinlines.patch")),
+  )
+
+  # We need to import the protobuf library under the names com_google_protobuf
+  # and com_google_protobuf_cc to enable proto_library support in bazel.
+  # Unfortunately there is no way to alias http_archives at the moment.
+  native.http_archive(
+      name = "com_google_protobuf",
+      urls = ["https://mirror.bazel.build/github.com/google/protobuf/archive/0b059a3d8a8f8aa40dde7bea55edca4ec5dfea66.tar.gz"],
+      sha256 = "6d43b9d223ce09e5d4ce8b0060cb8a7513577a35a64c7e3dad10f0703bf3ad93",
+      strip_prefix = "protobuf-0b059a3d8a8f8aa40dde7bea55edca4ec5dfea66",
   )
 
   # Protobuf's BUILD file depends on //external:six.
@@ -50,62 +61,39 @@ def tensorboard_workspace():
       actual = "@org_pythonhosted_six",
   )
 
-  platform_http_file(
-      name = "org_chromium_chromium",
-      licenses = ["notice"],  # BSD 3-clause (maybe more?)
-      amd64_sha256 =
-          "6933d0afce6e17304b62029fbbd246cbe9e130eb0d90d7682d3765d3dbc8e1c8",
-      amd64_urls = [
-          "https://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/561732/chrome-linux.zip",
-      ],
-      macos_sha256 =
-          "084884e91841a923d7b6e81101f0105bbc3b0026f9f6f7a3477f5b313ee89e32",
-      macos_urls = [
-          "https://commondatastorage.googleapis.com/chromium-browser-snapshots/Mac/561733/chrome-mac.zip",
-      ],
-      windows_sha256 =
-          "d1bb728118c12ea436d8ea07dba980789e7d860aa664dd1fad78bc20e8d9391c",
-      windows_urls = [
-          "https://commondatastorage.googleapis.com/chromium-browser-snapshots/Win_x64/540270/chrome-win32.zip",
-      ],
-  )
-
-  platform_http_file(
+  filegroup_external(
       name = "org_chromium_chromedriver",
-      licenses = ["reciprocal"],  # BSD 3-clause, ICU, MPL 1.1, libpng (BSD/MIT-like), Academic Free License v. 2.0, BSD 2-clause, MIT
-      amd64_sha256 =
-          "71eafe087900dbca4bc0b354a1d172df48b31a4a502e21f7c7b156d7e76c95c7",
-      amd64_urls = [
-          "https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip",
-      ],
-      macos_sha256 =
-          "fd32a27148f44796a55f5ce3397015c89ebd9f600d9dda2bcaca54575e2497ae",
-      macos_urls = [
-          "https://chromedriver.storage.googleapis.com/2.41/chromedriver_mac64.zip",
-      ],
-      windows_sha256 =
-          "a8fa028acebef7b931ef9cb093f02865f9f7495e49351f556e919f7be77f072e",
-      windows_urls = [
-          "https://chromedriver.storage.googleapis.com/2.38/chromedriver_win32.zip",
-      ],
+      licenses = ["notice"],  # Apache 2.0
+      sha256_urls = {
+          "59e6b1b1656a20334d5731b3c5a7400f92a9c6f5043bb4ab67f1ccf1979ee486": [
+              "https://mirror.bazel.build/chromedriver.storage.googleapis.com/2.26/chromedriver_linux64.zip",
+              "http://chromedriver.storage.googleapis.com/2.26/chromedriver_linux64.zip",
+          ],
+      },
+      sha256_urls_macos = {
+          "70aae3812941ed94ad8065bb4a9432861d7d4ebacdd93ee47bb2c7c57c7e841e": [
+              "https://mirror.bazel.build/chromedriver.storage.googleapis.com/2.26/chromedriver_mac64.zip",
+              "http://chromedriver.storage.googleapis.com/2.26/chromedriver_mac64.zip",
+          ],
+      },
+      generated_rule_name = "archive",
   )
 
-  java_import_external(
-      name = "org_apache_commons_lang3",
-      jar_sha256 = "de2e1dcdcf3ef917a8ce858661a06726a9a944f28e33ad7f9e08bea44dc3c230",
-      jar_urls = [
-          "http://mirror.tensorflow.org/repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.jar",
-          "https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.jar",
-      ],
-      licenses = ["notice"],  # Apache 2.0
-  )
-
-  java_import_external(
-      name = "org_apache_commons_text",
-      jar_sha256 = "df45e56549b63e0fe716953c9d43cc158f8bf008baf60498e7c17f3faa00a70b",
-      jar_urls = [
-          "http://mirror.tensorflow.org/repo1.maven.org/maven2/org/apache/commons/commons-text/1.6/commons-text-1.6.jar",
-          "https://repo1.maven.org/maven2/org/apache/commons/commons-text/1.6/commons-text-1.6.jar",
-      ],
-      licenses = ["notice"],  # Apache 2.0
+  # Roughly corresponds to Chrome 55
+  filegroup_external(
+      name = "org_chromium_chromium",
+      licenses = ["restricted"],  # So many licenses
+      sha256_urls = {
+          "e3c99954d6acce013174053534b72f47f67f18a0d75f79c794daaa8dd2ae8aaf": [
+              "https://mirror.bazel.build/commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/423768/chrome-linux.zip",
+              "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/423768/chrome-linux.zip",
+          ],
+      },
+      sha256_urls_macos = {
+          "62aeb7a5c6b8a1b7b31400105bf01295bbd45b0627920b8f99f0cc4ca76927ca": [
+              "https://mirror.bazel.build/commondatastorage.googleapis.com/chromium-browser-snapshots/Mac/423758/chrome-mac.zip",
+              "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Mac/423758/chrome-mac.zip",
+          ],
+      },
+      generated_rule_name = "archive",
   )

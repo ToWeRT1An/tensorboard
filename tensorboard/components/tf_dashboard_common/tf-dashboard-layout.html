@@ -28,43 +28,35 @@ Generic layout for a dashboard.
       <content select=".sidebar"></content>
     </div>
 
-    <div id="center">
-      <content select=".center" class="scollbar"></content>
+    <div id="center" class="scrollbar">
+      <content select=".center"></content>
     </div>
     <style include="scrollbar-style"></style>
     <style>
+      #sidebar {
+        width: inherit;
+        height: 100%;
+        overflow: ellipsis;
+        flex-grow: 0;
+        flex-shrink: 0;
+        max-width: 30%;
+      }
+
+      #center {
+        height: 100%;
+        overflow-y: auto;
+        flex-grow: 1;
+        flex-shrink: 1;
+      }
+
+      .tf-graph-dashboard #center {
+        background: white;
+      }
+
       :host {
         display: flex;
         flex-direction: row;
         height: 100%;
-      }
-
-      #sidebar {
-        flex: 0 0 var(--tf-dashboard-layout-sidebar-basis, 25%);
-        height: 100%;
-        max-width: var(--tf-dashboard-layout-sidebar-max-width, 350px);
-        min-width: var(--tf-dashboard-layout-sidebar-min-width, 270px);
-        overflow-y: auto;
-        text-overflow: ellipsis;
-      }
-
-      #center {
-        flex-grow: 1;
-        flex-shrink: 1;
-        height: 100%;
-        overflow: hidden;
-      }
-
-      ::content.center {
-        height: 100%;
-        overflow-x: hidden;
-        overflow-y: auto;
-        width: 100%;
-        will-change: transform;
-      }
-
-      .tf-graph-dashboard #center {
-        background: #fff;
       }
     </style>
   </template>

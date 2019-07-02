@@ -13,13 +13,11 @@
 # limitations under the License.
 
 # TensorBoard external JS dependencies (both infrastructure and frontend libs)
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@io_bazel_rules_closure//closure:defs.bzl", "filegroup_external")
 load("@io_bazel_rules_closure//closure:defs.bzl", "web_library_external")
 
 
 def tensorboard_js_workspace():
-  """TensorBoard JavaScript dependencies."""
 
   ##############################################################################
   # TensorBoard Build Tools
@@ -38,39 +36,33 @@ def tensorboard_js_workspace():
       licenses = ["notice"],
       sha256_urls_extract_macos = {
           "910395e1e98fb351c62b5702a9deef22aaecf05d6df1d7edc283337542207f3f": [
-              "http://mirror.tensorflow.org/nodejs.org/dist/v6.9.1/node-v6.9.1-darwin-x64.tar.xz",
+              "https://mirror.bazel.build/nodejs.org/dist/v6.9.1/node-v6.9.1-darwin-x64.tar.xz",
               "http://nodejs.org/dist/v6.9.1/node-v6.9.1-darwin-x64.tar.xz",
           ],
       },
       sha256_urls_windows = {
           "1914bfb950be8d576ce9e49c8a0e51c9f2402560fe3c19093e69bc1306a56e9e": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/nodejs/node/v6.9.1/LICENSE",
+              "https://mirror.bazel.build/raw.githubusercontent.com/nodejs/node/v6.9.1/LICENSE",
               "https://raw.githubusercontent.com/nodejs/node/v6.9.1/LICENSE",
           ],
           "513923b0490ebb7466a56483a62595814ed9d036d6f35476debb0cd606bec526": [
-              "http://mirror.tensorflow.org/nodejs.org/dist/v6.9.1/win-x64/node.exe",
+              "https://mirror.bazel.build/nodejs.org/dist/v6.9.1/win-x64/node.exe",
               "http://nodejs.org/dist/v6.9.1/win-x64/node.exe",
           ],
           "3951aefa4afd6fb836ab06468b1fc2a69fa75bd66ec2f5a0e08c4e32547681e3": [
-              "http://mirror.tensorflow.org/nodejs.org/dist/v6.9.1/win-x64/node.lib",
+              "https://mirror.bazel.build/nodejs.org/dist/v6.9.1/win-x64/node.lib",
               "http://nodejs.org/dist/v6.9.1/win-x64/node.lib",
           ],
       },
       sha256_urls_extract = {
           "d4eb161e4715e11bbef816a6c577974271e2bddae9cf008744627676ff00036a": [
-              "http://mirror.tensorflow.org/nodejs.org/dist/v6.9.1/node-v6.9.1-linux-x64.tar.xz",
+              "https://mirror.bazel.build/nodejs.org/dist/v6.9.1/node-v6.9.1-linux-x64.tar.xz",
               "http://nodejs.org/dist/v6.9.1/node-v6.9.1-linux-x64.tar.xz",
-          ],
-      },
-      sha256_urls_extract_ppc64le = {
-          "6f6362cba63c20eab4914c2983edd9699c1082792d0a35ef9c54d18b6c488e59": [
-              "http://nodejs.org/dist/v6.9.1/node-v6.9.1-linux-ppc64le.tar.xz",
           ],
       },
       strip_prefix = {
           "node-v6.9.1-darwin-x64.tar.xz": "node-v6.9.1-darwin-x64",
           "node-v6.9.1-linux-x64.tar.xz": "node-v6.9.1-linux-x64",
-          "node-v6.9.1-linux-ppc64le.tar.xz": "node-v6.9.1-linux-ppc64le",
       },
       executable = [
           "node",
@@ -83,20 +75,16 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # Apache 2.0
       sha256_urls = {
           "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/Microsoft/TypeScript/v2.7.2/LICENSE.txt",
-              "https://raw.githubusercontent.com/Microsoft/TypeScript/v2.9.2/LICENSE.txt",
+              "https://mirror.bazel.build/raw.githubusercontent.com/Microsoft/TypeScript/v2.5.3/LICENSE.txt",
+              "https://raw.githubusercontent.com/Microsoft/TypeScript/v2.5.3/LICENSE.txt",
           ],
-          "9632bfccde117a8c82690a324bc5c18c3869e9b89ac536fc134ba655d7ec1e98": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/Microsoft/TypeScript/v2.9.2/lib/tsc.js",
-              "https://raw.githubusercontent.com/Microsoft/TypeScript/v2.9.2/lib/tsc.js",
+          "f0e4b0878e34aefc2e2c688b9bde0633c46c3184afc45dde21eca4d94b363f20": [
+              "https://mirror.bazel.build/raw.githubusercontent.com/Microsoft/TypeScript/v2.5.3/lib/tsc.js",
+              "https://raw.githubusercontent.com/Microsoft/TypeScript/v2.5.3/lib/tsc.js",
           ],
-          "529c9f8b45939e0fa80950208bf80452ccb982b460cc25433813c919b67a3b2f": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/Microsoft/TypeScript/v2.9.2/lib/lib.es6.d.ts",
-              "https://raw.githubusercontent.com/Microsoft/TypeScript/v2.9.2/lib/lib.es6.d.ts",
-          ],
-          "f6e6efe57fb9fcf72eed013e2755d04505300f32b78577118ca5dacc85ec852d": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/Microsoft/TypeScript/v2.9.2/lib/lib.dom.d.ts",
-              "https://raw.githubusercontent.com/Microsoft/TypeScript/v2.9.2/lib/lib.dom.d.ts",
+          "68a49bf51313783f533d2e0db400f5d16cba71233f5c01dfca55ce5f97015f0c": [
+              "https://mirror.bazel.build/raw.githubusercontent.com/Microsoft/TypeScript/v2.5.3/lib/lib.es6.d.ts",
+              "https://raw.githubusercontent.com/Microsoft/TypeScript/v2.5.3/lib/lib.es6.d.ts",
           ],
       },
       extra_build_file_content = "\n".join([
@@ -125,14 +113,14 @@ def tensorboard_js_workspace():
       ]),
   )
 
-  http_archive(
+  native.new_http_archive(
       name = "io_angular_clutz",
       build_file = str(Label("//third_party:clutz.BUILD")),
-      sha256 = "632c33e8c1e4ba4b26954edb5a0d4d64edcff774bd57dd4ab4b590d3bbb43612",
-      strip_prefix = "clutz-6c8a2bd68dec3f2bbacae288e42d82ca4567b93f",
+      sha256 = "00c24702517628953dbb5aaf40e7e587d860bbb64ac71a2cdc1687dd691382f2",
+      strip_prefix = "clutz-1d731dc0e9bd3ca652e41240298a3693369d1289",
       urls = [
-          "http://mirror.tensorflow.org/github.com/angular/clutz/archive/6c8a2bd68dec3f2bbacae288e42d82ca4567b93f.tar.gz",  # 2019-05-17
-          "https://github.com/angular/clutz/archive/6c8a2bd68dec3f2bbacae288e42d82ca4567b93f.tar.gz",
+          "https://mirror.bazel.build/github.com/angular/clutz/archive/1d731dc0e9bd3ca652e41240298a3693369d1289.tar.gz",  # 2017-11-02
+          "https://github.com/angular/clutz/archive/1d731dc0e9bd3ca652e41240298a3693369d1289.tar.gz",
       ],
   )
 
@@ -140,22 +128,21 @@ def tensorboard_js_workspace():
       name = "com_google_javascript_closure_compiler_externs",
       licenses = ["notice"],  # Apache 2.0
       sha256_urls_extract = {
-          "4f0cc3cf9928905993072bdd1f81a4444bd8b7fff0a12f119e2dd2a9a68cdd82": [
-              # tag v20190513 resolves to commit 938e347e4f79f4d7b124e160145b6ea3418b4c56 (2019-05-13 16:28:32 -0700)
-              "http://mirror.tensorflow.org/github.com/google/closure-compiler/archive/v20190513.tar.gz",
-              "https://github.com/google/closure-compiler/archive/v20190513.tar.gz",
+          "1dfaafac60eb3826b2cda4a4bd293d139d6a631c0035c43b66cd444ebee11228": [
+              "https://mirror.bazel.build/github.com/google/closure-compiler/archive/v20171023.tar.gz",
+              "https://github.com/google/closure-compiler/archive/v20171023.tar.gz",
           ],
       },
-      strip_prefix = {"v20190513.tar.gz": "closure-compiler-20190513/externs"},
+      strip_prefix = {"v20171023.tar.gz": "closure-compiler-20171023/externs"},
   )
 
   filegroup_external(
       name = "com_google_javascript_closure_compiler_externs_polymer",
       licenses = ["notice"],  # Apache 2.0
       sha256_urls = {
-          "737af73d7b02226e6e1516044a8eb8283376d44f64839979936ca163c00900f4": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/google/closure-compiler/v20180402/contrib/externs/polymer-1.0.js",
-              "https://raw.githubusercontent.com/google/closure-compiler/v20180402/contrib/externs/polymer-1.0.js",
+          "23baad9a200a717a821c6df504c84d3a893d7ea9102b14876eb80097e3b94292": [
+              "https://mirror.bazel.build/raw.githubusercontent.com/google/closure-compiler/0e8dc5597a295ee259e3fecd98d6535dc621232f/contrib/externs/polymer-1.0.js",  # 2017-05-27
+              "https://raw.githubusercontent.com/google/closure-compiler/0e8dc5597a295ee259e3fecd98d6535dc621232f/contrib/externs/polymer-1.0.js",
           ],
       },
   )
@@ -165,17 +152,13 @@ def tensorboard_js_workspace():
       # no @license header
       licenses = ["notice"],  # MIT
       sha256_urls = {
-          "90f3af9ebfaf34f642b05f3baeeca2c5547d1b8ba6872803990c26804f4067b1": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/mrdoob/three.js/r104/LICENSE",
-              "https://raw.githubusercontent.com/mrdoob/three.js/r104/LICENSE",
+          "881cc79c84c34a1f61f8c8af0ee3f237d83a2eda3868720fdcb47bcacf8da44a": [
+              "https://mirror.bazel.build/raw.githubusercontent.com/mrdoob/three.js/r77/build/three.js",
+              "https://raw.githubusercontent.com/mrdoob/three.js/r77/build/three.js",
           ],
-          "40873d04d4ace1529c503b10053fe6c09c04e8ba4a1eaacb07a1ea17fa073368": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/mrdoob/three.js/r104/build/three.js",
-              "https://raw.githubusercontent.com/mrdoob/three.js/r104/build/three.js",
-          ],
-          "f495c87a34ac1bf238e245c60e9fed2ec831cefbb9dc29e17b91e24b5ef6559b": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/mrdoob/three.js/r104/examples/js/controls/OrbitControls.js",
-              "https://raw.githubusercontent.com/mrdoob/three.js/r104/examples/js/controls/OrbitControls.js",
+          "98b8b5954901025a98033c8bdd65969be1f30b59e11f823ec864253bb72f768d": [
+              "https://mirror.bazel.build/raw.githubusercontent.com/mrdoob/three.js/r77/examples/js/controls/OrbitControls.js",
+              "https://raw.githubusercontent.com/mrdoob/three.js/r77/examples/js/controls/OrbitControls.js",
           ],
       },
   )
@@ -186,15 +169,14 @@ def tensorboard_js_workspace():
   web_library_external(
       name = "com_lodash",
       licenses = ["notice"],  # MIT
-      sha256 = "6c5fa80d0fa9dc4eba634ab042404ff7c162dcb4cfe3473338801aeca0042285",
+      sha256 = "0e88207e5f90af4ce8790d6e1e7d09d2702d81bce0bafdc253d18c0a5bf7661e",
       urls = [
-          "http://mirror.tensorflow.org/github.com/lodash/lodash/archive/4.17.5.tar.gz",
-          "https://github.com/lodash/lodash/archive/4.17.5.tar.gz",
+          "https://mirror.bazel.build/github.com/lodash/lodash/archive/3.10.1.tar.gz",
+          "https://github.com/lodash/lodash/archive/3.10.1.tar.gz",
       ],
-      strip_prefix = "lodash-4.17.5",
+      strip_prefix = "lodash-3.10.1",
       path = "/lodash",
       srcs = ["lodash.js"],
-      extra_build_file_content = "exports_files([\"LICENSE\"])",
   )
 
   filegroup_external(
@@ -203,27 +185,15 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # MIT
       sha256_urls = {
           "0e94aada97f12dee6118064add9170484c55022f5d53206ee4407143cd36ddcd": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/sloisel/numeric/v1.2.6/license.txt",
+              "https://mirror.bazel.build/raw.githubusercontent.com/sloisel/numeric/v1.2.6/license.txt",
               "https://raw.githubusercontent.com/sloisel/numeric/v1.2.6/license.txt",
           ],
           "5dcaba2016fd237091e3a17b0dc272fb21f0e2b15d7628f95a0ad0cd4cdf4020": [
-              "http://mirror.tensorflow.org/cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.js",
-              "https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.js",
+              "https://mirror.bazel.build/www.numericjs.com/lib/numeric-1.2.6.js",
+              "http://www.numericjs.com/lib/numeric-1.2.6.js",
           ],
       },
       rename = {"numeric-1.2.6.js": "numeric.js"},
-  )
-
-  filegroup_external(
-      name = "ai_google_pair_umap_js",
-      # no @license header
-      licenses = ["notice"],  # Apache License 2.0
-      sha256_urls = {
-          "85a2ff924f1bf4757976aca22fd0efb045d9b3854f5a4ae838c64e4d11e75005": [
-              "http://mirror.tensorflow.org/unpkg.com/umap-js@1.0.5/lib/umap-js.min.js",
-              "https://unpkg.com/umap-js@1.0.5/lib/umap-js.min.js",
-          ],
-      },
   )
 
   filegroup_external(
@@ -234,9 +204,9 @@ def tensorboard_js_workspace():
           # Plottable doesn't have a release tarball on GitHub. Using the
           # sources directly from git also requires running Node tooling
           # beforehand to generate files. NPM is the only place to get it.
-          "08df639782baf9b8cfeeb5fcdfbe3a1ce25b5a916903fc580e201a0a1142a6c4": [
-              "http://mirror.tensorflow.org/registry.npmjs.org/plottable/-/plottable-3.7.0.tgz",
-              "https://registry.npmjs.org/plottable/-/plottable-3.7.0.tgz",
+          "e3159beb279391c47433789f22b32bac88488cfcad6c0b6ec8605ce6b0081b0d": [
+              "https://mirror.bazel.build/registry.npmjs.org/plottable/-/plottable-3.1.0.tgz",
+              "https://registry.npmjs.org/plottable/-/plottable-3.1.0.tgz",
           ],
       },
   )
@@ -247,12 +217,12 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # MIT
       sha256_urls = {
           "6a349742a6cb219d5a2fc8d0844f6d89a6efc62e20c664450d884fc7ff2d6015": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/cpettitt/dagre/v0.8.2/LICENSE",
-              "https://raw.githubusercontent.com/cpettitt/dagre/v0.8.2/LICENSE",
+              "https://mirror.bazel.build/raw.githubusercontent.com/cpettitt/dagre/v0.7.4/LICENSE",
+              "https://raw.githubusercontent.com/cpettitt/dagre/v0.7.4/LICENSE",
           ],
-          "43cb4e919196c177c149b63880d262074670af99db6a1e174b25e266da4935a9": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/cpettitt/dagre/v0.8.2/dist/dagre.core.js",
-              "https://raw.githubusercontent.com/cpettitt/dagre/v0.8.2/dist/dagre.core.js",
+          "7323829ddd77924a69e2b1235ded3eac30acd990da0f037e0fbd3c8e9035b50d": [
+              "https://mirror.bazel.build/raw.githubusercontent.com/cpettitt/dagre/v0.7.4/dist/dagre.core.js",
+              "https://raw.githubusercontent.com/cpettitt/dagre/v0.7.4/dist/dagre.core.js",
           ],
       },
   )
@@ -262,12 +232,12 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # MIT
       sha256_urls = {
           "6a349742a6cb219d5a2fc8d0844f6d89a6efc62e20c664450d884fc7ff2d6015": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/cpettitt/graphlib/v2.1.5/LICENSE",
-              "https://raw.githubusercontent.com/cpettitt/graphlib/v2.1.5/LICENSE",
+              "https://mirror.bazel.build/raw.githubusercontent.com/cpettitt/graphlib/v1.0.7/LICENSE",
+              "https://raw.githubusercontent.com/cpettitt/graphlib/v1.0.7/LICENSE",
           ],
-          "ddc33a6aaf955ee24b0e0d30110adf350c65eedc5c0f2c424ca85bc128199a66": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/cpettitt/graphlib/v2.1.5/dist/graphlib.core.js",
-              "https://raw.githubusercontent.com/cpettitt/graphlib/v2.1.5/dist/graphlib.core.js",
+          "772045d412b1513b549be991c2e1846c38019429d43974efcae943fbe83489bf": [
+              "https://mirror.bazel.build/raw.githubusercontent.com/cpettitt/graphlib/v1.0.7/dist/graphlib.core.js",
+              "https://raw.githubusercontent.com/cpettitt/graphlib/v1.0.7/dist/graphlib.core.js",
           ],
       },
   )
@@ -278,11 +248,11 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # MIT
       sha256_urls = {
           "633f2861a9a862b9cd7967e841e14dd3527912f209d6563595774fa31e3d84cb": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/waylonflinn/weblas/v0.9.0/LICENSE",
+              "https://mirror.bazel.build/raw.githubusercontent.com/waylonflinn/weblas/v0.9.0/LICENSE",
               "https://raw.githubusercontent.com/waylonflinn/weblas/v0.9.0/LICENSE",
           ],
           "f138fce57f673ca8a633f4aee5ae5b6fcb6ad0de59069a42a74e996fd04d8fcc": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/waylonflinn/weblas/v0.9.0/dist/weblas.js",
+              "https://mirror.bazel.build/raw.githubusercontent.com/waylonflinn/weblas/v0.9.0/dist/weblas.js",
               "https://raw.githubusercontent.com/waylonflinn/weblas/v0.9.0/dist/weblas.js",
           ],
       },
@@ -293,9 +263,9 @@ def tensorboard_js_workspace():
       # no @license header
       licenses = ["notice"],  # BSD-3-Clause
       sha256_urls_extract = {
-          "05a9c2b9c206447be0e26b3a705e7f8df4943df2d063ddc5bf0274f50ec44727": [
-              "http://mirror.tensorflow.org/github.com/d3/d3/releases/download/v5.7.0/d3.zip",
-              "https://github.com/d3/d3/releases/download/v5.7.0/d3.zip",
+          "d858c0878af36bd00e2af6029029106328d408c2bff0a60a9d78c4e27f47b99a": [
+              "https://mirror.bazel.build/github.com/d3/d3/releases/download/v4.9.1/d3.zip",
+              "https://github.com/d3/d3/releases/download/v4.9.1/d3.zip",
           ],
       },
       # TODO(jart): Use srcs=["d3.js"] instead of this once supported.
@@ -313,63 +283,14 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # BSD-3-Clause
       sha256_urls = {
           "f0df289ba9d03d857ad1c2f5918861376b1510b71588ffc60eff5c7a7bfedb09": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/catapult-project/catapult/2f7ee994984f3ebd3dd3dc3e05777bf180ec2ee8/LICENSE",
+              "https://mirror.bazel.build/raw.githubusercontent.com/catapult-project/catapult/2f7ee994984f3ebd3dd3dc3e05777bf180ec2ee8/LICENSE",
               "https://raw.githubusercontent.com/catapult-project/catapult/2f7ee994984f3ebd3dd3dc3e05777bf180ec2ee8/LICENSE",
           ],
           "b1f0195f305ca66fdb7dae264771f162ae03f04aa642848f15cd871c043e04d1": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/catapult-project/catapult/237aea8b58a37a2991318b6a0db60d84078e5f7e/trace_viewer_full.html",
+              "https://mirror.bazel.build/raw.githubusercontent.com/catapult-project/catapult/237aea8b58a37a2991318b6a0db60d84078e5f7e/trace_viewer_full.html",
               "https://raw.githubusercontent.com/catapult-project/catapult/237aea8b58a37a2991318b6a0db60d84078e5f7e/trace_viewer_full.html"  # 2017-06-19
           ],
       },
-  )
-
-  http_archive(
-      name = "ai_google_pair_facets",
-      sha256 = "e3f7b7b3c194c1772d16bdc8b348716c0da59a51daa03ef4503cf06c073caafc",
-      strip_prefix = "facets-0.2.1",
-      urls = [
-          "http://mirror.tensorflow.org/github.com/pair-code/facets/archive/0.2.1.tar.gz",
-          "https://github.com/pair-code/facets/archive/0.2.1.tar.gz",
-      ],
-  )
-  web_library_external(
-      name = "vaadin_vaadin_split_layout",
-      licenses = ["notice"],  # Apache License 2.0
-      sha256 = "44fb83628edb77cb8392c165d4d99734750a6fbb00e5391f033962e56f14eba3",
-      urls = [
-          "http://mirror.tensorflow.org/github.com/vaadin/vaadin-split-layout/archive/v1.1.0.tar.gz",
-          "https://github.com/vaadin/vaadin-split-layout/archive/v1.1.0.tar.gz",
-      ],
-      srcs = ["vaadin-split-layout.html"],
-      deps = [
-          "@org_polymer",
-          "@org_polymer_iron_resizable_behavior",
-      ],
-      strip_prefix = "vaadin-split-layout-1.1.0",
-      path = "/vaadin-split-layout",
-  )
-
-  web_library_external(
-      name = "vaadin_vaadin_grid",
-      licenses = ["notice"],  # Apache License 2.0
-      sha256 = "834679bedc1b6bafecac7e7f0e3458d99ace6cddbf154c56631ef6428b787fd1",
-      urls = [
-          "http://mirror.tensorflow.org/github.com/vaadin/vaadin-grid/archive/v3.0.2.tar.gz",
-          "https://github.com/vaadin/vaadin-grid/archive/v3.0.2.tar.gz",
-      ],
-      glob = ["*.html"],
-      exclude = [
-          "index.html",
-      ],
-      deps = [
-          "@org_polymer_iron_resizable_behavior",
-          "@org_polymer_iron_scroll_target_behavior",
-          "@org_polymer_iron_a11y_keys_behavior",
-          "@org_polymer_iron_a11y_announcer",
-          "@org_polymer",
-      ],
-      strip_prefix = "vaadin-grid-3.0.2",
-      path = "/vaadin-grid",
   )
 
   ##############################################################################
@@ -380,7 +301,7 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # Apache License 2.0
       sha256 = "1d6a72f401c9d53f68238c617dd43a05cd85ca5aa2e676a5b3c352711448e093",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/accessibility-developer-tools/-/accessibility-developer-tools-2.10.0.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/accessibility-developer-tools/-/accessibility-developer-tools-2.10.0.tgz",
           "https://registry.npmjs.org/accessibility-developer-tools/-/accessibility-developer-tools-2.10.0.tgz",
       ],
       strip_prefix = "package",
@@ -393,7 +314,7 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # MIT
       sha256 = "08655255ae810bf4d1cb1642df57658fcce823776d3ba8f4b46f4bbff6c87ece",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/async/-/async-1.5.0.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/async/-/async-1.5.0.tgz",
           "https://registry.npmjs.org/async/-/async-1.5.0.tgz",
       ],
       strip_prefix = "package",
@@ -405,7 +326,7 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # MIT
       sha256 = "aca8137bed5bb295bd7173325b7ad604cd2aeb341d739232b4f9f0b26745be90",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/chai/-/chai-3.5.0.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/chai/-/chai-3.5.0.tgz",
           "https://registry.npmjs.org/chai/-/chai-3.5.0.tgz",
       ],
       strip_prefix = "package",
@@ -417,7 +338,7 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # MIT
       sha256 = "13ef37a071196a2fba680799b906555d3f0ab61e80a7e8f73f93e77914590dd4",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/mocha/-/mocha-2.5.3.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/mocha/-/mocha-2.5.3.tgz",
           "https://registry.npmjs.org/mocha/-/mocha-2.5.3.tgz",
       ],
       suppress = ["strictDependencies"],
@@ -430,10 +351,10 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # BSD-3-Clause
       sha256 = "49edb057695fc9019aae992bf7e677a07de7c6ce2bf9f9facde4a245045d1532",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/sinon/-/sinon-1.17.4.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/sinon/-/sinon-1.17.4.tgz",
           "https://registry.npmjs.org/sinon/-/sinon-1.17.4.tgz",
       ],
-      strip_prefix = "package/pkg",
+      strip_prefix = "package/lib",
       path = "/sinonjs",
   )
 
@@ -442,7 +363,7 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # BSD-3-Clause
       sha256 = "b85fc56f713832960b56fe9269ee4bb2cd41edd2ceb130b0936e5bdbed5dea63",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/sinon-chai/-/sinon-chai-2.8.0.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/sinon-chai/-/sinon-chai-2.8.0.tgz",
           "https://registry.npmjs.org/sinon-chai/-/sinon-chai-2.8.0.tgz",
       ],
       strip_prefix = "package",
@@ -454,7 +375,7 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # BSD-3-Clause
       sha256 = "c659e60f7957d9d80c23a7aacc4d71b19c6421a08f91174c0062de369595acae",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/stacky/-/stacky-1.3.1.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/stacky/-/stacky-1.3.1.tgz",
           "https://registry.npmjs.org/stacky/-/stacky-1.3.1.tgz",
       ],
       strip_prefix = "package",
@@ -466,7 +387,7 @@ def tensorboard_js_workspace():
       licenses = ["notice"],  # BSD-3-Clause
       sha256 = "9d4ebd4945df8a936916d4d32b7f280f2a3afa35f79e7ca8ad3ed0a42770c537",
       urls = [
-          "http://mirror.tensorflow.org/registry.npmjs.org/web-component-tester/-/web-component-tester-4.3.6.tgz",
+          "https://mirror.bazel.build/registry.npmjs.org/web-component-tester/-/web-component-tester-4.3.6.tgz",
           "https://registry.npmjs.org/web-component-tester/-/web-component-tester-4.3.6.tgz",
       ],
       strip_prefix = "package",
@@ -494,34 +415,9 @@ def tensorboard_js_workspace():
       sha256 = "59d6cfb1187733b71275becfea181fe0aa1f734df5ff77f5850c806bbbf9a0d9",
       strip_prefix = "test-fixture-2.0.1",
       urls = [
-          "http://mirror.tensorflow.org/github.com/PolymerElements/test-fixture/archive/v2.0.1.tar.gz",
+          "https://mirror.bazel.build/github.com/PolymerElements/test-fixture/archive/v2.0.1.tar.gz",
           "https://github.com/PolymerElements/test-fixture/archive/v2.0.1.tar.gz",
       ],
       path = "/test-fixture",
       exclude = ["test/**"],
-  )
-
-  filegroup_external(
-      name = "org_tensorflow_tfjs",
-      licenses = ["notice"],  # Apache 2.0
-      sha256_urls = {
-          "fccd26db2da462ec48e2d90fbdff1ee9a9d740f2c7efbd9789ba46eb98ecd1ae": [
-              "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.11.5/dist/tf.min.js",
-          ],
-      },
-  )
-
-  filegroup_external(
-      name = "org_tensorflow_graphics_lib",
-      licenses = ["notice"],  # MIT
-      sha256_urls = {
-          "5a9cd221f6727b7524ba6b63bdc0355843c42a238d3f83df980005c7cb270a92": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/tensorflow/graphics/cd8c42f9ca260f77c6acfecd42e66ef01d1a3766/tensorflow_graphics/tensorboard/mesh_visualizer/tf_mesh_dashboard/array-buffer-data-provider.js",
-              "https://raw.githubusercontent.com/tensorflow/graphics/cd8c42f9ca260f77c6acfecd42e66ef01d1a3766/tensorflow_graphics/tensorboard/mesh_visualizer/tf_mesh_dashboard/array-buffer-data-provider.js",
-          ],
-          "bc7e983aae707e2d8dc0ca6406e3779e4ad73c537a02bed6d3d3d40180f26904": [
-              "http://mirror.tensorflow.org/raw.githubusercontent.com/tensorflow/graphics/cd8c42f9ca260f77c6acfecd42e66ef01d1a3766/tensorflow_graphics/tensorboard/mesh_visualizer/tf_mesh_dashboard/mesh-viewer.js",
-              "https://raw.githubusercontent.com/tensorflow/graphics/cd8c42f9ca260f77c6acfecd42e66ef01d1a3766/tensorflow_graphics/tensorboard/mesh_visualizer/tf_mesh_dashboard/mesh-viewer.js",
-          ],
-      },
   )

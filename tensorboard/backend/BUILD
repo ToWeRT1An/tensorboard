@@ -14,7 +14,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":json_util",
-        "//tensorboard/compat:tensorflow",
+        "//tensorboard:expect_tensorflow_installed",
         "@org_pocoo_werkzeug",
         "@org_pythonhosted_six",
     ],
@@ -25,10 +25,9 @@ py_test(
     size = "small",
     srcs = ["http_util_test.py"],
     srcs_version = "PY2AND3",
-    tags = ["support_notf"],
     deps = [
         ":http_util",
-        "//tensorboard:test",
+        "//tensorboard:expect_tensorflow_installed",
         "@org_pocoo_werkzeug",
         "@org_pythonhosted_six",
     ],
@@ -40,7 +39,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = ["//visibility:public"],
     deps = [
-        "//tensorboard/compat:tensorflow",
+        "//tensorboard:expect_tensorflow_installed",
     ],
 )
 
@@ -49,10 +48,9 @@ py_test(
     size = "small",
     srcs = ["json_util_test.py"],
     srcs_version = "PY2AND3",
-    tags = ["support_notf"],
     deps = [
         ":json_util",
-        "//tensorboard:test",
+        "//tensorboard:expect_tensorflow_installed",
     ],
 )
 
@@ -63,8 +61,9 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":http_util",
+        "//tensorboard:db",
         "//tensorboard:expect_sqlite3_installed",
-        "//tensorboard/backend/event_processing:db_import_multiplexer",
+        "//tensorboard:expect_tensorflow_installed",
         "//tensorboard/backend/event_processing:event_accumulator",
         "//tensorboard/backend/event_processing:event_multiplexer",
         "//tensorboard/plugins/core:core_plugin",
@@ -72,7 +71,6 @@ py_library(
         "//tensorboard/plugins/image:metadata",
         "//tensorboard/plugins/pr_curve:metadata",
         "//tensorboard/plugins/scalar:metadata",
-        "//tensorboard/util:tb_logging",
         "@org_pocoo_werkzeug",
         "@org_pythonhosted_six",
     ],
@@ -83,14 +81,13 @@ py_test(
     size = "small",
     srcs = ["application_test.py"],
     srcs_version = "PY2AND3",
-    tags = ["support_notf"],
     deps = [
         ":application",
-        "//tensorboard:test",
+        "//tensorboard",
+        "//tensorboard:expect_tensorflow_installed",
         "//tensorboard/backend/event_processing:event_multiplexer",
         "//tensorboard/plugins:base_plugin",
         "@org_pocoo_werkzeug",
-        "@org_pythonhosted_mock",
     ],
 )
 
@@ -100,6 +97,6 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = ["//visibility:public"],
     deps = [
-        "//tensorboard/compat:tensorflow",
+        "//tensorboard:expect_tensorflow_installed",
     ],
 )

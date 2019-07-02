@@ -28,19 +28,7 @@ py_library(
         "//tensorboard/backend:http_util",
         "//tensorboard/backend/event_processing:plugin_asset_util",
         "//tensorboard/plugins:base_plugin",
-        "//tensorboard/util:tb_logging",
         "@org_pocoo_werkzeug",
-        "@org_pythonhosted_six",
-    ],
-)
-
-py_library(
-    name = "profile_plugin_loader",
-    srcs = ["profile_plugin_loader.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":profile_plugin",
-        "//tensorboard/plugins:base_plugin",
     ],
 )
 
@@ -52,7 +40,6 @@ py_test(
         ":profile_plugin",
         ":protos_all_py_pb2",
         "//tensorboard:expect_tensorflow_installed",
-        "//tensorboard/backend/event_processing:event_multiplexer",
         "//tensorboard/backend/event_processing:plugin_asset_util",
         "//tensorboard/plugins:base_plugin",
     ],
@@ -86,12 +73,7 @@ py_binary(
         "profile_demo.py",
         "profile_demo_data.py",
     ],
-    data = [
-        "profile_demo.google_chart_demo.json",
-        "profile_demo.memory_viewer.json",
-        "profile_demo.op_profile.json",
-        "profile_demo.pod_viewer.json",
-    ],
+    data = ["profile_demo.op_profile.json"],
     srcs_version = "PY2AND3",
     deps = [
         ":profile_plugin",

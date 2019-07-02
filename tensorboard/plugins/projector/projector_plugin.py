@@ -19,34 +19,27 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import functools
 import imghdr
 import math
-import mimetypes
 import os
 import threading
 
 import numpy as np
+import tensorflow as tf
 from werkzeug import wrappers
 
 from google.protobuf import json_format
 from google.protobuf import text_format
-
 from tensorboard.backend.http_util import Respond
-from tensorboard.compat import tf
-from tensorboard.compat import _pywrap_tensorflow
 from tensorboard.plugins import base_plugin
 from tensorboard.plugins.projector.projector_config_pb2 import ProjectorConfig
-from tensorboard.util import tb_logging
-
-logger = tb_logging.get_logger()
 
 # The prefix of routes provided by this plugin.
 _PLUGIN_PREFIX_ROUTE = 'projector'
 
 # FYI - the PROJECTOR_FILENAME is hardcoded in the visualize_embeddings
 # method in tf.contrib.tensorboard.plugins.projector module.
-# TODO(@decentralion): Fix duplication when we find a permanent home for the
+# TODO(@dandelionmane): Fix duplication when we find a permanent home for the
 # projector module.
 PROJECTOR_FILENAME = 'projector_config.pbtxt'
 _PLUGIN_NAME = 'org_tensorflow_tensorboard_projector'
@@ -148,7 +141,7 @@ class EmbeddingMetadata(object):
 
 
 def _read_tensor_tsv_file(fpath):
-  with tf.io.gfile.GFile(fpath, 'r') as f:
+  with tf.gfile.GFile(fpath, 'r') as f:
     tensor = []
     for line in f:
       line = line.rstrip('\n')
@@ -171,8 +164,8 @@ def _latest_checkpoints_changed(configs, run_path_pairs):
     if run_name not in configs:
       config = ProjectorConfig()
       config_fpath = os.path.join(assets_dir, PROJECTOR_FILENAME)
-      if tf.io.gfile.exists(config_fpath):
-        with tf.io.gfile.GFile(config_fpath, 'r') as f:
+      if tf.gfile.Exists(config_fpath):
+        with tf.gfile.GFile(config_fpath, 'r') as f:
           file_content = f.read()
         text_format.Merge(file_content, config)
     else:
@@ -217,11 +210,6 @@ def _rel_to_abs_asset_path(fpath, config_fpath):
   return fpath
 
 
-def _using_tf():
-  """Return true if we're not using the fake TF API stub implementation."""
-  return tf.__version__ != 'stub'
-
-
 class ProjectorPlugin(base_plugin.TBPlugin):
   """Embedding projector."""
 
@@ -238,7 +226,7 @@ class ProjectorPlugin(base_plugin.TBPlugin):
     self._handlers = None
     self.readers = {}
     self.run_paths = None
-    self._configs = {}
+    self._configs = None
     self.old_num_run_paths = None
     self.config_fpaths = None
     self.tensor_cache = LRUCache(_TENSOR_CACHE_CAPACITY)
@@ -262,15 +250,7 @@ class ProjectorPlugin(base_plugin.TBPlugin):
         TENSOR_ROUTE: self._serve_tensor,
         METADATA_ROUTE: self._serve_metadata,
         BOOKMARKS_ROUTE: self._serve_bookmarks,
-        SPRITE_IMAGE_ROUTE: self._serve_sprite_image,
-        '/index.js':
-            functools.partial(
-                self._serve_file,
-                os.path.join('tf_projector_plugin', 'index.js')),
-        '/projector_binary.html':
-            functools.partial(
-                self._serve_file,
-                os.path.join('tf_projector_plugin', 'projector_binary.html')),
+        SPRITE_IMAGE_ROUTE: self._serve_sprite_image
     }
     return self._handlers
 
@@ -305,12 +285,6 @@ class ProjectorPlugin(base_plugin.TBPlugin):
     self._thread_for_determining_is_active = new_thread
     new_thread.start()
     return False
-
-  def frontend_metadata(self):
-    return super(ProjectorPlugin, self).frontend_metadata()._replace(
-        es_module_path='/index.js',
-        disable_reload=True,
-    )
 
   def _determine_is_active(self):
     """Determines whether the plugin is active.
@@ -401,8 +375,8 @@ class ProjectorPlugin(base_plugin.TBPlugin):
     for run_name, assets_dir in run_path_pairs:
       config = ProjectorConfig()
       config_fpath = os.path.join(assets_dir, PROJECTOR_FILENAME)
-      if tf.io.gfile.exists(config_fpath):
-        with tf.io.gfile.GFile(config_fpath, 'r') as f:
+      if tf.gfile.Exists(config_fpath):
+        with tf.gfile.GFile(config_fpath, 'r') as f:
           file_content = f.read()
         text_format.Merge(file_content, config)
       has_tensor_files = False
@@ -422,10 +396,10 @@ class ProjectorPlugin(base_plugin.TBPlugin):
         if ckpt_path:
           config.model_checkpoint_path = ckpt_path
 
-      # Sanity check for the checkpoint file existing.
-      if (config.model_checkpoint_path and _using_tf() and
-          not tf.io.gfile.glob(config.model_checkpoint_path + '*')):
-        logger.warn('Checkpoint file "%s" not found',
+      # Sanity check for the checkpoint file.
+      if (config.model_checkpoint_path and
+          not tf.train.checkpoint_exists(config.model_checkpoint_path)):
+        tf.logging.warning('Checkpoint file "%s" not found',
                            config.model_checkpoint_path)
         continue
       configs[run_name] = config
@@ -438,11 +412,12 @@ class ProjectorPlugin(base_plugin.TBPlugin):
 
     config = self._configs[run]
     reader = None
-    if config.model_checkpoint_path and _using_tf():
+    if config.model_checkpoint_path:
       try:
-        reader = tf.train.load_checkpoint(config.model_checkpoint_path)
+        reader = tf.pywrap_tensorflow.NewCheckpointReader(
+            config.model_checkpoint_path)
       except Exception:  # pylint: disable=broad-except
-        logger.warn('Failed reading "%s"', config.model_checkpoint_path)
+        tf.logging.warning('Failed reading "%s"', config.model_checkpoint_path)
     self.readers[run] = reader
     return reader
 
@@ -480,14 +455,6 @@ class ProjectorPlugin(base_plugin.TBPlugin):
       assets_dir = os.path.join(self.run_paths[run], _PLUGINS_DIR, _PLUGIN_NAME)
       assets_path_pair = (run, os.path.abspath(assets_dir))
       run_path_pairs.append(assets_path_pair)
-
-  @wrappers.Request.application
-  def _serve_file(self, file_path, request):
-    """Returns a resource file."""
-    res_path = os.path.join(os.path.dirname(__file__), file_path)
-    with open(res_path, 'rb') as read_file:
-      mimetype = mimetypes.guess_type(file_path)[0]
-      return Respond(request, read_file.read(), content_type=mimetype)
 
   @wrappers.Request.application
   def _serve_runs(self, request):
@@ -535,12 +502,12 @@ class ProjectorPlugin(base_plugin.TBPlugin):
           'No metadata file found for tensor "%s" in the config file "%s"' %
           (name, self.config_fpaths[run]), 'text/plain', 400)
     fpath = _rel_to_abs_asset_path(fpath, self.config_fpaths[run])
-    if not tf.io.gfile.exists(fpath) or tf.io.gfile.isdir(fpath):
+    if not tf.gfile.Exists(fpath) or tf.gfile.IsDirectory(fpath):
       return Respond(request, '"%s" not found, or is not a file' % fpath,
                      'text/plain', 400)
 
     num_header_rows = 0
-    with tf.io.gfile.GFile(fpath, 'r') as f:
+    with tf.gfile.GFile(fpath, 'r') as f:
       lines = []
       # Stream reading the file with early break in case the file doesn't fit in
       # memory.
@@ -582,7 +549,7 @@ class ProjectorPlugin(base_plugin.TBPlugin):
       if embedding and embedding.tensor_path:
         fpath = _rel_to_abs_asset_path(embedding.tensor_path,
                                        self.config_fpaths[run])
-        if not tf.io.gfile.exists(fpath):
+        if not tf.gfile.Exists(fpath):
           return Respond(request,
                          'Tensor file "%s" does not exist' % fpath,
                          'text/plain', 400)
@@ -631,12 +598,12 @@ class ProjectorPlugin(base_plugin.TBPlugin):
           'No bookmarks file found for tensor "%s" in the config file "%s"' %
           (name, self.config_fpaths[run]), 'text/plain', 400)
     fpath = _rel_to_abs_asset_path(fpath, self.config_fpaths[run])
-    if not tf.io.gfile.exists(fpath) or tf.io.gfile.isdir(fpath):
+    if not tf.gfile.Exists(fpath) or tf.gfile.IsDirectory(fpath):
       return Respond(request, '"%s" not found, or is not a file' % fpath,
                      'text/plain', 400)
 
     bookmarks_json = None
-    with tf.io.gfile.GFile(fpath, 'rb') as f:
+    with tf.gfile.GFile(fpath, 'rb') as f:
       bookmarks_json = f.read()
     return Respond(request, bookmarks_json, 'application/json')
 
@@ -666,10 +633,10 @@ class ProjectorPlugin(base_plugin.TBPlugin):
 
     fpath = os.path.expanduser(embedding_info.sprite.image_path)
     fpath = _rel_to_abs_asset_path(fpath, self.config_fpaths[run])
-    if not tf.io.gfile.exists(fpath) or tf.io.gfile.isdir(fpath):
+    if not tf.gfile.Exists(fpath) or tf.gfile.IsDirectory(fpath):
       return Respond(request, '"%s" does not exist or is directory' % fpath,
                      'text/plain', 400)
-    f = tf.io.gfile.GFile(fpath, 'rb')
+    f = tf.gfile.GFile(fpath, 'rb')
     encoded_image_string = f.read()
     f.close()
     image_type = imghdr.what(None, encoded_image_string)
@@ -678,8 +645,6 @@ class ProjectorPlugin(base_plugin.TBPlugin):
 
 
 def _find_latest_checkpoint(dir_path):
-  if not _using_tf():
-    return None
   try:
     ckpt_path = tf.train.latest_checkpoint(dir_path)
     if not ckpt_path:
@@ -688,3 +653,39 @@ def _find_latest_checkpoint(dir_path):
     return ckpt_path
   except tf.errors.NotFoundError:
     return None
+
+
+def _make_sprite_image(thumbnails, thumbnail_dim):
+  """Constructs a sprite image from thumbnails and returns the png bytes."""
+  if len(thumbnails) < 1:
+    raise ValueError('The length of "thumbnails" must be >= 1')
+
+  if isinstance(thumbnails, np.ndarray) and thumbnails.ndim != 4:
+    raise ValueError('"thumbnails" should be of rank 4, '
+                     'but is of rank %d' % thumbnails.ndim)
+  if isinstance(thumbnails, list):
+    if not isinstance(thumbnails[0], np.ndarray) or thumbnails[0].ndim != 3:
+      raise ValueError('Each element of "thumbnails" must be a 3D `ndarray`')
+    thumbnails = np.array(thumbnails)
+
+  with tf.Graph().as_default():
+    s = tf.Session()
+    resized_images = tf.image.resize_images(thumbnails, thumbnail_dim).eval(
+        session=s)
+    images_per_row = int(math.ceil(math.sqrt(len(thumbnails))))
+    thumb_height = thumbnail_dim[0]
+    thumb_width = thumbnail_dim[1]
+    master_height = images_per_row * thumb_height
+    master_width = images_per_row * thumb_width
+    num_channels = thumbnails.shape[3]
+    master = np.zeros([master_height, master_width, num_channels])
+    for idx, image in enumerate(resized_images):
+      left_idx = idx % images_per_row
+      top_idx = int(math.floor(idx / images_per_row))
+      left_start = left_idx * thumb_width
+      left_end = left_start + thumb_width
+      top_start = top_idx * thumb_height
+      top_end = top_start + thumb_height
+      master[top_start:top_end, left_start:left_end, :] = image
+
+    return tf.image.encode_png(master).eval(session=s)

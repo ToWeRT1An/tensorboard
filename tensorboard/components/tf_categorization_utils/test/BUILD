@@ -3,21 +3,15 @@ package(
     default_visibility = ["//tensorboard:internal"],
 )
 
-load("//tensorboard/defs:web.bzl", "tf_web_library", "tf_web_test")
+load("//tensorboard/defs:web.bzl", "tf_web_library")
 
 licenses(["notice"])  # Apache 2.0
 
-tf_web_test(
-    name = "test",
-    web_library = ":test_web_library",
-    src = "/tf-categorization-utils/test/tests.html",
-)
-
 tf_web_library(
-    name = "test_web_library",
+    name = "test",
     srcs = [
         "tests.html",
-        "categorizationUtilsTests.js",
+        "categorizationUtilsTests.ts",
     ],
     path = "/tf-categorization-utils/test",
     deps = [

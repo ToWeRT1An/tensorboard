@@ -8,11 +8,12 @@ java_binary(
     jvm_flags = [
         "-Xss20m",  # JSCompiler needs big stacks for recursive parsing
         "-XX:+UseParallelGC",  # Best GC when app isn't latency sensitive
+        "-Djava.util.logging.SimpleFormatter.format='%1$$tY-%1$$tm-%1$$td %1$$tH:%1$$tM:%1$$tS.%1$$tL %4$$-6s %5$$s%6$$s%n'",  # Less log spam
     ],
     visibility = ["//visibility:public"],
     deps = [
         "@com_google_guava",
-        "@com_google_protobuf//:protobuf_java",
+        "@com_google_protobuf_java",
         "@io_bazel_rules_closure//closure/compiler",
         "@io_bazel_rules_closure//java/io/bazel/rules/closure:webpath",
         "@io_bazel_rules_closure//java/io/bazel/rules/closure/webfiles:build_info_java_proto",
@@ -27,7 +28,7 @@ java_binary(
     visibility = ["//visibility:public"],
     deps = [
         "@com_google_guava",
-        "@com_google_protobuf//:protobuf_java",
+        "@com_google_protobuf_java",
         "@io_bazel_rules_closure//java/io/bazel/rules/closure/webfiles",
         "@io_bazel_rules_closure//java/io/bazel/rules/closure/webfiles:build_info_java_proto",
     ],
@@ -39,7 +40,6 @@ filegroup(
     name = "jslibs",
     srcs = [
         # Ordering probably matters
-        "//third_party:jspbfix",
         "@com_google_javascript_closure_compiler_externs",
         "@com_google_javascript_closure_compiler_externs_polymer",
         "externs.js",
@@ -48,3 +48,4 @@ filegroup(
     ],
     visibility = ["//visibility:public"],
 )
+

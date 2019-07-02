@@ -489,7 +489,7 @@ limitations under the License.
           return null;
         },
         _getTotalMicros: function(stats) {
-          return stats ? stats.getTotalMicros() : 0;
+          return stats.getTotalMicros();
         },
         _getHasDisplayableNodeStats: function(stats) {
           return tf.graph.util.hasDisplayableNodeStats(stats);
@@ -599,8 +599,8 @@ limitations under the License.
            * Unpacks the metaedge into a list of base edge information
            * that can be rendered.
            */
-          var unpackMetaedge = (metaedge) => {
-            return _.map(metaedge.baseEdgeList, (baseEdge) => {
+          var unpackMetaedge = function(metaedge) {
+            return _.map(metaedge.baseEdgeList, function(baseEdge) {
               var name = isPredecessor ? baseEdge.v : baseEdge.w;
               return {
                 name: name,
@@ -609,8 +609,8 @@ limitations under the License.
                     this.renderHierarchy),
                 renderInfo: this._getRenderInfo(name, this.renderHierarchy)
               };
-            });
-          };
+            }, this);
+          }.bind(this);
 
           /**
            * Converts a list of metaedges to a list of edge information
@@ -618,7 +618,7 @@ limitations under the License.
            */
           var toEdgeInfoList = function(edges) {
             var edgeInfoList = [];
-            _.each(edges, (metaedge) => {
+            _.each(edges, function(metaedge) {
               var name = isPredecessor ? metaedge.v : metaedge.w;
               // Enumerate all the base edges if the node is an OpNode, or the
               // metaedge has only 1 edge in it.
@@ -633,7 +633,7 @@ limitations under the License.
                   renderInfo: this._getRenderInfo(name, this.renderHierarchy)
                 });
               }
-            });
+            }, this);
             return edgeInfoList;
           }.bind(this);
 

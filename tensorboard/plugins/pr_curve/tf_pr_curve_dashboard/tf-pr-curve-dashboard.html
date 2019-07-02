@@ -92,7 +92,7 @@ limitations under the License.
         <template is="dom-if" if="[[!_dataNotFound]]">
           <tf-tag-filterer tag-filter="{{_tagFilter}}"></tf-tag-filterer>
           <template is="dom-repeat" items="[[_categories]]" as="category">
-            <tf-category-pane category="[[category]]" opened="[[_shouldOpen(index)]]">
+            <tf-category-pane category="[[category]]">
               <tf-paginated-view
                 items="[[category.items]]"
                 pages="{{category._pages}}"
@@ -194,9 +194,6 @@ limitations under the License.
         this._reloadCards();
       });
     },
-    _shouldOpen(index) {
-      return index <= 2;
-    },
     _fetchTags() {
       const url = tf_backend.getRouter().pluginRoute('pr_curves', '/tags');
       return this._requestManager.request(url).then(runToTagInfo => {
@@ -259,6 +256,12 @@ limitations under the License.
       const defaultDisplayName = tag.replace(/\/pr_curves$/, '');
       return tf_utils.aggregateTagInfo(runToTagInfo, defaultDisplayName);
     },
+  });
+
+  tf_tensorboard.registerDashboard({
+    plugin: 'pr_curves',
+    elementName: 'tf-pr-curve-dashboard',
+    tabName: 'PR Curves',
   });
 
   </script>

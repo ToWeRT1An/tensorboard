@@ -17,14 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
-
 import tensorflow as tf
-from tensorboard.plugins.debugger import tensor_helper
-from tensorboard.util import tb_logging
-from tensorflow.python.debug.lib import debug_data
 
-logger = tb_logging.get_logger()
+from tensorboard.plugins.debugger import tensor_helper
+
 
 # TODO(cais): Defer some tensor values to TensorBase, within a bytes limit,
 #   before discarding them.
@@ -86,9 +82,8 @@ class _WatchStore(object):
       raise ValueError(
           'Cannot add value: this _WatchStore instance is already disposed')
     self._data.append(value)
-    if hasattr(value, 'nbytes'):
-      self._in_mem_bytes += value.nbytes
-      self._ensure_bytes_limits()
+    self._in_mem_bytes += value.nbytes
+    self._ensure_bytes_limits()
 
   def _ensure_bytes_limits(self):
     # TODO(cais): Thread safety?
@@ -98,8 +93,7 @@ class _WatchStore(object):
     i = len(self._data) - 1
     cum_mem_size = 0
     while i >= 0:
-      if hasattr(self._data[i], 'nbytes'):
-        cum_mem_size += self._data[i].nbytes
+      cum_mem_size += self._data[i].nbytes
       if i < len(self._data) - 1 and cum_mem_size > self._mem_bytes_limit:
         # Always keep at least one time index in the memory.
         break
@@ -156,15 +150,7 @@ class _WatchStore(object):
       if isinstance(self._data[time_index], _TensorValueDiscarded):
         output.append(None)
       else:
-        data_item = self._data[time_index]
-        if (hasattr(data_item, 'dtype') and
-            tensor_helper.translate_dtype(data_item.dtype) == 'string'):
-          _, _, data_item = tensor_helper.array_view(data_item)
-          data_item = np.array(
-              tensor_helper.process_buffers_for_display(data_item),
-              dtype=np.object)
-        output.append(data_item)
-
+        output.append(self._data[time_index])
     return output
 
   def dispose(self):
@@ -197,11 +183,7 @@ class TensorStore(object):
           mem_bytes_limit=self._watch_mem_bytes_limit)
     self._tensor_data[watch_key].add(tensor_value)
 
-  def query(self,
-            watch_key,
-            time_indices=None,
-            slicing=None,
-            mapping=None):
+  def query(self, watch_key, time_indices=None, slicing=None, mapping=None):
     """Query tensor store for a given watch_key.
 
     Args:
@@ -210,7 +192,7 @@ class TensorStore(object):
         `-1`, `:-2`, `[::2]`. If not provided (`None`), will use -1.
       slicing: A numpy-style slicing string for individual time steps.
       mapping: An mapping string or a list of them. Supported mappings:
-        `{None, 'image/png', 'health-pill'}`.
+        `{None, 'image/png'}`.
 
     Returns:
       The potentially sliced values as a nested list of values or its mapped
@@ -240,8 +222,7 @@ class TensorStore(object):
     output = []
     for index in sliced_time_indices:
       value = self._tensor_data[watch_key].query(index)[0]
-      if (value is not None and
-          not isinstance(value, debug_data.InconvertibleTensorProto)):
+      if value is not None:
         output.append(tensor_helper.array_view(
             value, slicing=slicing, mapping=step_mapping)[2])
       else:
@@ -251,7 +232,7 @@ class TensorStore(object):
       if mapping == 'image/png':
         output = tensor_helper.array_to_base64_png(output)
       elif mapping and mapping != 'none':
-        logger.warn(
+        tf.logging.warn(
             'Unsupported mapping mode after recomining time steps: %s',
             mapping)
     return output

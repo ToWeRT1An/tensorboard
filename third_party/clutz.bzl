@@ -14,27 +14,22 @@
 
 """Build definitions for TypeScript from Closure JavaScript libraries."""
 
-load("@bazel_skylib//lib:paths.bzl", "paths")
-
 load("@io_bazel_rules_closure//closure/private:defs.bzl",
      "JS_FILE_TYPE",
      "collect_js",
      "unfurl")
 
-DEPRECATED_CLUTZ_ATTRIBUTES = {
+CLUTZ_ATTRIBUTES = {
     "_clutz": attr.label(
         default=Label("@io_angular_clutz//:clutz"),
         executable=True,
         cfg="host"),
-    "_clutz_externs": attr.label_list(
-        default=[
-            Label("//third_party:jspbfix"),
-            Label("@com_google_javascript_closure_compiler_externs"),
-        ],
+    "_clutz_externs": attr.label(
+        default=Label("@com_google_javascript_closure_compiler_externs"),
         allow_files=True),
 }
 
-def deprecated_extract_dts_from_closure_libraries(ctx):
+def extract_dts_from_closure_libraries(ctx):
   """Extracts type definitions from closure dependencies.
 
   This just generates one big .d.ts file for all transitive Closure sources,
@@ -48,39 +43,35 @@ def deprecated_extract_dts_from_closure_libraries(ctx):
       The generated Clutz typings file, or None if there were no JS deps.
   """
   deps = unfurl(ctx.attr.deps, provider="closure_js_library")
-  js = collect_js(deps, ctx.files._closure_library_base)
+  js = collect_js(ctx, deps)
   if not js.srcs:
     return None
-  js_typings = ctx.actions.declare_file(paths.join(
-      ctx.bin_dir.path, "%s-js-typings.d.ts" % ctx.label.name))
-  # File.extension does not have leading "." whereas JS_FILE_TYPE does.
-  clutz_js_externs = [f for f in ctx.files._clutz_externs
-                      if '.%s' % f.extension in JS_FILE_TYPE]
-  srcs = depset(transitive=[depset(clutz_js_externs), js.srcs])
+  js_typings = ctx.new_file(ctx.bin_dir, "%s-js-typings.d.ts" % ctx.label.name)
+  srcs = depset(JS_FILE_TYPE.filter(ctx.files._clutz_externs)) + js.srcs
   args = ["-o", js_typings.path]
-  for src in srcs.to_list():
+  for src in srcs:
     args.append(src.path)
   if getattr(ctx.attr, "clutz_entry_points", None):
     args.append("--closure_entry_points")
     args.extend(ctx.attr.clutz_entry_points)
-  ctx.actions.run(
-      inputs=srcs,
+  ctx.action(
+      inputs=list(srcs),
       outputs=[js_typings],
       executable=ctx.executable._clutz,
       arguments=args,
       mnemonic="Clutz",
       progress_message="Running Clutz on %d JS files %s" % (
-          len(srcs.to_list()), ctx.label))
+          len(srcs), ctx.label))
   return js_typings
 
 ################################################################################
-# The following definitions are for API compatibility with internal deprecated_clutz.bzl
+# The following definitions are for API compatibility with internal clutz.bzl
 
-DEPRECATED_CLUTZ_OUTPUTS = {}
+CLUTZ_OUTPUTS = {}
 
 def _clutz_aspect_impl(target, ctx):
   return struct()
 
-deprecated_clutz_aspect = aspect(
+clutz_aspect = aspect(
     implementation=_clutz_aspect_impl,
     attr_aspects=["exports"])

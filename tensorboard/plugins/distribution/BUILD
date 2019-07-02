@@ -37,30 +37,6 @@ py_test(
         "//tensorboard/backend/event_processing:event_multiplexer",
         "//tensorboard/plugins:base_plugin",
         "//tensorboard/plugins/histogram:summary",
-        "//tensorboard/util:test_util",
-        "@org_pocoo_werkzeug",
-        "@org_pythonhosted_six",
-    ],
-)
-
-# TODO(#2007): Remove this after pruning unnecessary TensorFlow deps in main test
-py_test(
-    name = "distributions_plugin_notf_test",
-    size = "small",
-    srcs = ["distributions_plugin_test.py"],
-    main = "distributions_plugin_test.py",
-    srcs_version = "PY2AND3",
-    deps = [
-        ":compressor",
-        ":distributions_plugin",
-        "//tensorboard:expect_tensorflow_installed",
-        "//tensorboard/backend:application",
-        "//tensorboard/backend/event_processing:event_accumulator",
-        "//tensorboard/backend/event_processing:event_multiplexer",
-        "//tensorboard/compat:no_tensorflow",
-        "//tensorboard/plugins:base_plugin",
-        "//tensorboard/plugins/histogram:summary",
-        "//tensorboard/util:test_util",
         "@org_pocoo_werkzeug",
         "@org_pythonhosted_six",
     ],

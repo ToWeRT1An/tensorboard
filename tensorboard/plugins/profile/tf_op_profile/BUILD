@@ -13,8 +13,6 @@ tf_web_library(
         ":tf_op_details",
         ":tf_op_table",
         ":utils",
-        "@org_polymer_paper_slider",
-        "@org_polymer_paper_toggle_button",
     ],
 )
 
@@ -34,6 +32,8 @@ tf_web_library(
     path = "/tf-op-profile",
     deps = [
         ":utils",
+        "@org_polymer_paper_slider",
+        "@org_polymer_paper_toggle_button",
     ],
 )
 
@@ -41,7 +41,7 @@ tf_web_library(
     name = "utils",
     srcs = [
         "utils.html",
-        "utils.js",
+        "utils.ts",
     ],
     path = "/tf-op-profile",
 )

@@ -111,7 +111,7 @@ div.op-compat-value {
         on-click="_toggleExpanded"
         class="toggle-button">
       </paper-icon-button>
-      <div class="node-name" id="nodetitle">[[nodeTitle]]</div>
+      <div class="node-name" id="nodetitle">TPU Compatibility</div>
     </div>
     <div secondary>
       <div class="subtitle">
@@ -169,7 +169,6 @@ div.op-compat-value {
       graphHierarchy: Object,
       hierarchyParams: Object,
       renderHierarchy: Object,
-      nodeTitle: String,
       _templateIndex: {
         type: Function,
         computed: '_getTemplateIndex(graphHierarchy)'
@@ -242,9 +241,7 @@ div.op-compat-value {
         var numIncompat = root.compatibilityHistogram.incompatible;
         if (numCompat == 0 && numIncompat == 0)
           return 0;
-        var numTotal = numCompat + numIncompat;
-        // Round the ratio towards negative infinity.
-        return Math.floor( (100*numCompat) / numTotal) / 100;
+        return numCompat / (numCompat + numIncompat);
       }
       return 0;
     },

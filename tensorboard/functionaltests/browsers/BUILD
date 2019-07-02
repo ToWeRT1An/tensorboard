@@ -26,7 +26,6 @@ browser(
     metadata = "chromium.json",
     visibility = ["//visibility:public"],
     deps = [
-        "@io_bazel_rules_webtesting//go/wsl",
         "//third_party/chromium",
         "//third_party/chromium:chromedriver",
     ],

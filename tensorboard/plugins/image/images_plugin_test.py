@@ -36,9 +36,6 @@ from tensorboard.backend.event_processing import plugin_event_multiplexer as eve
 from tensorboard.plugins import base_plugin
 from tensorboard.plugins.image import summary
 from tensorboard.plugins.image import images_plugin
-from tensorboard.util import test_util
-
-tf.compat.v1.disable_v2_behavior()
 
 
 class ImagesPluginTest(tf.test.TestCase):
@@ -51,35 +48,37 @@ class ImagesPluginTest(tf.test.TestCase):
     numpy.random.seed(42)
 
     # Create old-style image summaries for run "foo".
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
-    placeholder = tf.compat.v1.placeholder(tf.uint8)
-    tf.compat.v1.summary.image(name="baz", tensor=placeholder)
-    merged_summary_op = tf.compat.v1.summary.merge_all()
+    tf.reset_default_graph()
+    sess = tf.Session()
+    placeholder = tf.placeholder(tf.uint8)
+    tf.summary.image(name="baz", tensor=placeholder)
+    merged_summary_op = tf.summary.merge_all()
     foo_directory = os.path.join(self.log_dir, "foo")
-    with test_util.FileWriterCache.get(foo_directory) as writer:
-      writer.add_graph(sess.graph)
-      for step in xrange(2):
-        writer.add_summary(sess.run(merged_summary_op, feed_dict={
-            placeholder: (numpy.random.rand(1, 16, 42, 3) * 255).astype(
-                numpy.uint8)
-        }), global_step=step)
+    writer = tf.summary.FileWriter(foo_directory)
+    writer.add_graph(sess.graph)
+    for step in xrange(2):
+      writer.add_summary(sess.run(merged_summary_op, feed_dict={
+          placeholder: (numpy.random.rand(1, 16, 42, 3) * 255).astype(
+              numpy.uint8)
+      }), global_step=step)
+    writer.close()
 
     # Create new-style image summaries for run bar.
-    tf.compat.v1.reset_default_graph()
-    sess = tf.compat.v1.Session()
-    placeholder = tf.compat.v1.placeholder(tf.uint8)
+    tf.reset_default_graph()
+    sess = tf.Session()
+    placeholder = tf.placeholder(tf.uint8)
     summary.op(name="quux", images=placeholder,
                description="how do you pronounce that, anyway?")
-    merged_summary_op = tf.compat.v1.summary.merge_all()
+    merged_summary_op = tf.summary.merge_all()
     bar_directory = os.path.join(self.log_dir, "bar")
-    with test_util.FileWriterCache.get(bar_directory) as writer:
-      writer.add_graph(sess.graph)
-      for step in xrange(2):
-        writer.add_summary(sess.run(merged_summary_op, feed_dict={
-            placeholder: (numpy.random.rand(1, 8, 6, 3) * 255).astype(
-                numpy.uint8)
-        }), global_step=step)
+    writer = tf.summary.FileWriter(bar_directory)
+    writer.add_graph(sess.graph)
+    for step in xrange(2):
+      writer.add_summary(sess.run(merged_summary_op, feed_dict={
+          placeholder: (numpy.random.rand(1, 6, 8, 3) * 255).astype(
+              numpy.uint8)
+      }), global_step=step)
+    writer.close()
 
     # Start a server with the plugin.
     multiplexer = event_multiplexer.EventMultiplexer({
@@ -89,14 +88,9 @@ class ImagesPluginTest(tf.test.TestCase):
     context = base_plugin.TBContext(
         logdir=self.log_dir, multiplexer=multiplexer)
     plugin = images_plugin.ImagesPlugin(context)
-    # Setting a reload interval of -1 disables reloading. We disable reloading
-    # because we seek to block tests from running til after one reload finishes.
-    # This setUp method thus manually reloads the multiplexer. TensorBoard would
-    # otherwise reload in a non-blocking thread.
     wsgi_app = application.TensorBoardWSGIApp(
-        self.log_dir, [plugin], multiplexer, reload_interval=-1, path_prefix='')
+        self.log_dir, [plugin], multiplexer, reload_interval=0, path_prefix='')
     self.server = werkzeug_test.Client(wsgi_app, wrappers.BaseResponse)
-    multiplexer.Reload()
     self.routes = plugin.get_plugin_apps()
 
   def tearDown(self):

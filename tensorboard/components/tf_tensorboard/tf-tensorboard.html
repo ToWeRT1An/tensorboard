@@ -119,98 +119,89 @@ limitations under the License.
           </template>
           <div class="global-actions">
             <paper-icon-button
-              id="reload-button"
-              class$="[[_getDataRefreshingClass(_refreshing)]]"
-              disabled$="[[_isReloadDisabled]]"
               icon="refresh"
               on-tap="reload"
-              title$="Last updated: [[_lastReloadTimeShort]]"
+              disabled$="[[_isReloadDisabled]]"
+              id="reload-button"
             ></paper-icon-button>
             <paper-icon-button
               icon="settings"
               on-tap="openSettings"
               id="settings-button"
             ></paper-icon-button>
-            <a
-              href="https://github.com/tensorflow/tensorboard/blob/master/README.md"
-              rel="noopener noreferrer"
-              tabindex="-1"
-              target="_blank"
-            >
+            <a href="https://github.com/tensorflow/tensorboard/blob/master/README.md" tabindex="-1">
               <paper-icon-button icon="help-outline"></paper-icon-button>
             </a>
           </div>
         </div>
       </paper-toolbar>
 
-      <div id="content-pane" class="fit">
+      <div id="content" class="fit">
         <slot id="injected-overview"></slot>
-        <div id="content">
-          <template is="dom-if" if="[[_activeDashboardsFailedToLoad]]">
-            <div class="warning-message">
-              <h3>Failed to load the set of active dashboards.</h3>
-              <p>
-              This can occur if the TensorBoard backend is no longer
-              running. Perhaps this page is cached?
-              <p>
-              If you think that you’ve fixed the problem, click the reload
-              button in the top-right.
-              <template is="dom-if" if="[[autoReloadEnabled]]">
-              We’ll try to reload every [[autoReloadIntervalSecs]]&nbsp;seconds as well.
-              </template>
-              <p><i>Last reload: [[_lastReloadTime]]</i>
-              <template is="dom-if" if="[[_dataLocation]]">
-                <p><i>Log directory: <span id="data_location">[[_dataLocation]]</span></i></p>
-              </template>
-            </div>
-          </template>
-          <template is="dom-if" if="[[_showNoDashboardsMessage]]">
-            <div class="warning-message">
-              <h3>No dashboards are active for the current data set.</h3>
-              <p>Probable causes:</p>
-              <ul>
-                <li>You haven’t written any data to your event files.
-                <li>TensorBoard can’t find your event files.
-              </ul>
-              If you’re new to using TensorBoard, and want to find out how
-              to add data and set up your event files, check out the
-              <a href="https://github.com/tensorflow/tensorboard/blob/master/README.md">README</a>
-              and perhaps the <a href="https://www.tensorflow.org/get_started/summaries_and_tensorboard">TensorBoard tutorial</a>.
-              <p>
-              If you think TensorBoard is configured properly, please see
-              <a href="https://github.com/tensorflow/tensorboard/blob/master/README.md#my-tensorboard-isnt-showing-any-data-whats-wrong">the section of the README devoted to missing data problems</a>
-              and consider filing an issue on GitHub.
-              <p><i>Last reload: [[_lastReloadTime]]</i>
-              <template is="dom-if" if="[[_dataLocation]]">
-                <p><i>Data location: <span id="data_location">[[_dataLocation]]</span></i></p>
-              </template>
-            </div>
-          </template>
-          <template is="dom-if" if="[[_showNoSuchDashboardMessage]]">
-            <div class="warning-message">
-              <h3>There’s no dashboard by the name of “<tt>[[_selectedDashboard]]</tt>.”</h3>
-              <template is="dom-if" if="[[_activeDashboardsLoaded]]">
-                <p>You can select a dashboard from the list above.
-              </template>
-              <p><i>Last reload: [[_lastReloadTime]]</i>
-              <template is="dom-if" if="[[_dataLocation]]">
-                <p><i>Data location: <span id="data_location">[[_dataLocation]]</span></i></p>
-              </template>
-            </div>
-          </template>
-          <template
-            is="dom-repeat"
-            id="dashboards-template"
-            items="[[_dashboardData]]"
-            as="dashboardDatum"
-          >
-            <div
-              class="dashboard-container"
-              data-dashboard$="[[dashboardDatum.plugin]]"
-              data-selected$="[[_selectedStatus(_selectedDashboard, dashboardDatum.plugin)]]"
-            ><!-- Dashboards will be injected here dynamically. --></div>
-          </template>
-        </div>
+        <template is="dom-if" if="[[_activeDashboardsFailedToLoad]]">
+          <div class="warning-message">
+            <h3>Failed to load the set of active dashboards.</h3>
+            <p>
+            This can occur if the TensorBoard backend is no longer
+            running. Perhaps this page is cached?
+            <p>
+            If you think that you’ve fixed the problem, click the reload
+            button in the top-right.
+            <template is="dom-if" if="[[autoReloadEnabled]]">
+            We’ll try to reload every [[autoReloadIntervalSecs]]&nbsp;seconds as well.
+            </template>
+            <p><i>Last reload: [[_lastReloadTime]]</i>
+            <template is="dom-if" if="[[_logdir]]">
+              <p><i>Log directory: <span id="logdir">[[_logdir]]</span></i></p>
+            </template>
+          </div>
+        </template>
+        <template is="dom-if" if="[[_showNoDashboardsMessage]]">
+          <div class="warning-message">
+            <h3>No dashboards are active for the current data set.</h3>
+            <p>Probable causes:</p>
+            <ul>
+              <li>You haven’t written any data to your event files.
+              <li>TensorBoard can’t find your event files.
+            </ul>
+            If you’re new to using TensorBoard, and want to find out how
+            to add data and set up your event files, check out the
+            <a href="https://github.com/tensorflow/tensorboard/blob/master/README.md">README</a>
+            and perhaps the <a href="https://www.tensorflow.org/get_started/summaries_and_tensorboard">TensorBoard tutorial</a>.
+            <p>
+            If you think TensorBoard is configured properly, please see
+            <a href="https://github.com/tensorflow/tensorboard/blob/master/README.md#my-tensorboard-isnt-showing-any-data-whats-wrong">the section of the README devoted to missing data problems</a>
+            and consider filing an issue on GitHub.
+            <p><i>Last reload: [[_lastReloadTime]]</i>
+            <template is="dom-if" if="[[_logdir]]">
+              <p><i>Log directory: <span id="logdir">[[_logdir]]</span></i></p>
+            </template>
+          </div>
+        </template>
+        <template is="dom-if" if="[[_showNoSuchDashboardMessage]]">
+          <div class="warning-message">
+            <h3>There’s no dashboard by the name of “<tt>[[_selectedDashboard]]</tt>.”</h3>
+            <template is="dom-if" if="[[_activeDashboardsLoaded]]">
+              <p>You can select a dashboard from the list above.
+            </template>
+            <p><i>Last reload: [[_lastReloadTime]]</i>
+            <template is="dom-if" if="[[_logdir]]">
+              <p><i>Log directory: <span id="logdir">[[_logdir]]</span></i></p>
+            </template>
+          </div>
+        </template>
+        <template
+          is="dom-repeat"
+          id="dashboards-template"
+          items="[[_dashboardData]]"
+          as="dashboardDatum"
+        >
+          <div
+            class="dashboard-container"
+            data-dashboard$="[[dashboardDatum.plugin]]"
+            style="display: [[_displayStyle(_selectedDashboard, dashboardDatum.plugin)]]"
+          ><!-- Dashboards will be injected here dynamically. --></div>
+        </template>
       </div>
     </paper-header-panel>
 
@@ -302,41 +293,12 @@ limitations under the License.
         align-items: center;
       }
 
-      #content-pane {
-        align-items: stretch;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        justify-content: stretch;
-        width: 100%;
-      }
-
       #content {
-        flex: 1 1;
-        overflow: hidden;
+        height: 100%;
       }
 
       .dashboard-container {
         height: 100%;
-      }
-
-      /* Hide unselected dashboards. We still display them within a container
-         of height 0 since Plottable produces degenerate charts when charts are
-         reloaded while not displayed. */
-      .dashboard-container:not([data-selected]) {
-        max-height: 0;
-        overflow: hidden;
-        position: relative;
-        /** We further make containers invisible. Some elements may anchor to
-            the viewport instead of the container, in which case setting the max
-            height here to 0 will not hide them. */
-        visibility: hidden;
-      }
-
-      .dashboard-container iframe {
-        border: none;
-        height: 100%;
-        width: 100%;
       }
 
       .warning-message {
@@ -348,79 +310,13 @@ limitations under the License.
         opacity: 0.2;
         color: white;
       }
-
-      #reload-button.refreshing {
-        animation: rotate 2s linear infinite;
-      }
-
-      @keyframes rotate {
-        0% {
-          transform: rotate(0deg);
-        }
-        50% {
-          transform: rotate(180deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
     </style>
-    <template id="colabNotSupported" preserve-content>
-      <div style="max-width: 540px; margin: 80px auto 0 auto;">
-        <h3>Dynamic plugin isn’t supported in Colab yet.</h3>
-        <p>
-          Please see
-          <a
-            href="https://github.com/tensorflow/tensorboard/issues/1913"
-            rel="noopener"
-            target="_blank"
-          >GitHub issue #1913</a>
-          for more information.
-        </p>
-      </div>
-    </template>
   </template>
   <script src="autoReloadBehavior.js"></script>
   <script>
-    /**
-     * @typedef {{
-     *   plugin: string,
-     *   loadingMechanism: !LoadingMechanism,
-     *   tabName: string,
-     *   disableReload: boolean,
-     *   removeDom: boolean,
-     * }}
-     */
-    const DashboardDatum = {};
-
-    /**
-     * @typedef {(LoadingMechanism$CUSTOM_ELEMENT | LoadingMechanism$IFRAME)}
-     */
-    const LoadingMechanism = {};
-
-    /**
-     * @typedef {{
-     *   type: LoadingMechanism$CUSTOM_ELEMENT$Type,
-     *   elementName: string,
-     * }}
-     */
-    const LoadingMechanism$CUSTOM_ELEMENT = {};
-
-    /**
-     * @typedef {{
-     *   type: LoadingMechanism$IFRAME$Type,
-     *   modulePath: string,
-     * }}
-     */
-    const LoadingMechanism$IFRAME = {};
-
-    // Closure's type system doesn't have string literal types.
-    /** @enum {string} */
-    const LoadingMechanism$CUSTOM_ELEMENT$Type = {_: 'CUSTOM_ELEMENT'};
-    /** @enum {string} */
-    const LoadingMechanism$IFRAME$Type = {_: 'IFRAME'};
-
-    const DATA_SELECTION_CHANGE_DEBOUNCE_MS = 200;
+    if (_.isEmpty(tf_tensorboard.dashboardRegistry)) {
+      throw new Error('HTML import plugin dashboards *before* tf-tensorboard');
+    }
 
     Polymer({
       is: "tf-tensorboard",
@@ -486,35 +382,25 @@ limitations under the License.
          * The set of all dashboards. Each object within this array is a
          * DashboardDatum object.
          *
-         * (This is just the range of `_dashboardRegistry`.)
-         *
-         * @type {Array<!DashboardDatum>}
+         * @type {Array<Object>}
          */
         _dashboardData: {
           type: Array,
-          computed: '_computeDashboardData(_dashboardRegistry)',
+          readOnly: true,
+          value: Object.values(tf_tensorboard.dashboardRegistry),
         },
 
         /**
-         * @type {Object<string, !DashboardDatum>}
-         */
-        _dashboardRegistry: {
-          type: Object,
-          computed: '_computeDashboardRegistry(_pluginsListing)',
-        },
-
-        _pluginsListing: {
-          type: Object,
-          value: () => ({}),
-        },
-
-        /**
-         * The set of currently active dashboards.
+         * The set of currently active dashboards. `null` if not yet fetched.
+         *
+         * TODO(@wchargin): Consider templating in an initial value for
+         * this property.
+         *
          * @type {Array<string>?}
          */
         _activeDashboards: {
           type: Array,
-          computed: '_computeActiveDashboard(_dashboardData, _pluginsListing)'
+          value: null,
         },
 
         /** @type {tf_tensorboard.ActiveDashboardsLoadState} */
@@ -545,7 +431,7 @@ limitations under the License.
         _showNoSuchDashboardMessage: {
           type: Boolean,
           computed:
-            '_computeShowNoSuchDashboardMessage(_activeDashboardsLoaded, _dashboardRegistry, _selectedDashboard)',
+            '_computeShowNoSuchDashboardMessage(_dashboardData, _selectedDashboard)',
         },
 
         /**
@@ -555,35 +441,35 @@ limitations under the License.
          */
         _selectedDashboard: {
           type: String,
-          value: tf_storage.getString(tf_storage.TAB) || null,
+          value: tf_storage.getString(tf_storage.TAB, /*useLocalStorage=*/false) || null,
           observer: '_selectedDashboardChanged'
         },
-        _dashboardToMaybeRemove: String,
 
         /*
-         * Once the dashboard container for dashboard `d` is stamped,
-         * key `d` of this object will be set to `true`.
+         * Will be set to `true` once our DOM is ready: in particular,
+         * once each dashboard has a `<div>` into which we can render its
+         * Polymer component root.
          */
         _dashboardContainersStamped: {
-          type: Object,
-          value: () => ({}),
+          type: Boolean,
+          value: false,
         },
+
         _isReloadDisabled: {
           type: Boolean,
           value: false,
         },
+
         _lastReloadTime: {
           type: String,
           value: "not yet loaded",
         },
-        _lastReloadTimeShort: {
-          type: String,
-          value: "Not yet loaded",
-        },
-        _dataLocation: {
+
+        _logdir: {
           type: String,
           value: null,
         },
+
         _requestManager: {
           type: Object,
           value: () => new tf_backend.RequestManager(),
@@ -592,22 +478,13 @@ limitations under the License.
           type: Object,
           value: () => new tf_backend.Canceller(),
         },
-        _refreshing: {
-          type: Boolean,
-          value: false,
-        },
-        _inColab: {
-          type: Boolean,
-          value: () => !!(window.TENSORBOARD_ENV || {}).IN_COLAB,
-          readOnly: true,
-        },
       },
       observers: [
         ('_updateSelectedDashboardFromActive(' +
          '_selectedDashboard, _activeDashboards)'),
         ('_ensureSelectedDashboardStamped(' +
-         '_dashboardRegistry, _dashboardContainersStamped, ' +
-         '_activeDashboards, _selectedDashboard)'),
+         '_dashboardContainersStamped, _activeDashboards, ' +
+         '_selectedDashboard)'),
       ],
 
       _activeDashboardsUpdated(activeDashboards, selectedDashboard) {
@@ -678,8 +555,9 @@ limitations under the License.
         return dashboards[index];
       },
 
-      _selectedStatus(selectedDashboard, candidateDashboard) {
-        return selectedDashboard === candidateDashboard;
+      _displayStyle(selectedDashboard, candidateDashboard) {
+         // Display only the selected dashboard.
+        return selectedDashboard === candidateDashboard ? 'inherit' : 'none';
       },
 
       /**
@@ -688,7 +566,7 @@ limitations under the License.
        */
       _selectedDashboardChanged(selectedDashboard) {
         const pluginString = selectedDashboard || '';
-        tf_storage.setString(tf_storage.TAB, pluginString);
+        tf_storage.setString(tf_storage.TAB, pluginString, /*useLocalStorage=*/false);
         // Record this dashboard selection as a page view.
         ga('set', 'page', '/' + pluginString);
         ga('send', 'pageview');
@@ -702,11 +580,6 @@ limitations under the License.
         if (activeDashboards && selectedDashboard == null) {
           selectedDashboard = activeDashboards[0] || null;
           if (selectedDashboard != null) {
-            // Use location.replace for this call to avoid breaking back-button navigation.
-            // Note that this will precede the update to tf_storage triggered by updating
-            // _selectedDashboard and make it a no-op.
-            tf_storage.setString(tf_storage.TAB, selectedDashboard,
-                {useLocationReplace: true});
             // Note: the following line will re-trigger this handler, but it
             // will be a no-op since selectedDashboard is no longer null.
             this._selectedDashboard = selectedDashboard;
@@ -715,7 +588,7 @@ limitations under the License.
       },
 
       _updateSelectedDashboardFromHash() {
-        const dashboardName = tf_storage.getString(tf_storage.TAB);
+        const dashboardName = tf_storage.getString(tf_storage.TAB, /*useLocalStorage=*/false);
         this.set('_selectedDashboard', dashboardName || null);
       },
 
@@ -736,27 +609,11 @@ limitations under the License.
        *
        * If the currently selected dashboard is not a real dashboard,
        * this does nothing.
-       *
-       * @param {!Object<string, !DashboardDatum>} dashboardRegistry
        */
-      _ensureSelectedDashboardStamped(
-          dashboardRegistry,
-          containersStamped,
-          activeDashboards,
-          selectedDashboard,
-      ) {
-        if (!activeDashboards || !selectedDashboard || !containersStamped[selectedDashboard]) {
+      _ensureSelectedDashboardStamped(containersStamped, activeDashboards,
+                                      selectedDashboard) {
+        if (!containersStamped || !activeDashboards || !selectedDashboard) {
           return;
-        }
-        const previous = this._dashboardToMaybeRemove;
-        this._dashboardToMaybeRemove = selectedDashboard;
-        if (previous && previous != selectedDashboard) {
-          if (dashboardRegistry[previous].removeDom) {
-            const div = this.$$(`.dashboard-container[data-dashboard=${previous}]`);
-            if (div.firstChild) {
-              div.firstChild.remove();
-            }
-          }
         }
         const container = this.$$(
             `.dashboard-container[data-dashboard=${selectedDashboard}]`);
@@ -764,60 +621,13 @@ limitations under the License.
           // This dashboard doesn't exist. Nothing to do here.
           return;
         }
-        const dashboard = dashboardRegistry[selectedDashboard];
-        // Use .children, not .childNodes, to avoid counting comment nodes.
-        if (container.children.length === 0) {
-          const loadingMechanism = dashboard.loadingMechanism;
-          switch (loadingMechanism.type) {
-            case 'CUSTOM_ELEMENT': {
-              const component = document.createElement(loadingMechanism.elementName);
-              component.id = 'dashboard';  // used in `_selectedDashboardComponent`
-              container.appendChild(component);
-              break;
-            }
-            case 'IFRAME': {
-              this._renderPluginIframe(
-                  container, selectedDashboard, loadingMechanism);
-              break;
-            }
-            default: {
-              console.warn('Invariant violation:', loadingMechanism);
-              break;
-            }
-          }
+        const dashboard = tf_tensorboard.dashboardRegistry[selectedDashboard];
+        if (container.childNodes.length === 0) {
+          const component = document.createElement(dashboard.elementName);
+          component.id = 'dashboard';  // used in `_selectedDashboardComponent`
+          container.appendChild(component);
         }
-        this.set('_isReloadDisabled', dashboard.disableReload);
-      },
-
-      _renderPluginIframe(container, selectedDashboard, loadingMechanism) {
-        if (this._inColab) {
-          const templateContent = this.$.colabNotSupported.content;
-          const node = document.importNode(templateContent, true);
-          node.id = 'dashboard';  // used in `_selectedDashboardComponent`
-          this.scopeSubtree(node);
-          container.appendChild(node);
-          return;
-        }
-        const iframe = document.createElement('iframe');
-        iframe.id = 'dashboard';  // used in `_selectedDashboardComponent`
-        this.scopeSubtree(iframe);
-        container.appendChild(iframe);
-        const subdocument = iframe.contentDocument;
-        const pluginBasePath = tf_backend.getRouter()
-            .pluginRoute(selectedDashboard, '/')
-        const base = subdocument.createElement('base');
-        // TODO(stephanwlee): Use sanitized URL when setting the href.
-        // setAttribute is a bypass for the security conformance which we
-        // have no way to address.
-        base.setAttribute(
-            'href',
-            String(new URL(pluginBasePath, window.location.href)));
-        subdocument.head.appendChild(base);
-        const script = subdocument.createElement('script');
-        const moduleString = JSON.stringify(loadingMechanism.modulePath);
-        script.textContent =
-          `import(${moduleString}).then((m) => void m.render());`;
-        subdocument.body.appendChild(script);
+        this.set('_isReloadDisabled', dashboard.isReloadDisabled);
       },
 
       /**
@@ -831,6 +641,10 @@ limitations under the License.
        * `null` is returned.
        */
       _selectedDashboardComponent() {
+        if (!this._dashboardContainersStamped) {
+          throw new Error(
+            'There is no "selected dashboard" before containers are stamped.');
+        }
         const selectedDashboard = this._selectedDashboard;
         var dashboard = this.$$(
           `.dashboard-container[data-dashboard=${selectedDashboard}] #dashboard`);
@@ -844,149 +658,44 @@ limitations under the License.
           this._updateSelectedDashboardFromHash();
         }, /*useCapture=*/false);
 
-        tf_backend.environmentStore.addListener(() => {
-          this._dataLocation = tf_backend.environmentStore.getDataLocation();
-          const title = tf_backend.environmentStore.getWindowTitle();
-          if (title) {
-            window.document.title = title;
-          }
-        });
-
         // We have to wait for our dashboard-containers to be stamped
         // before we can do anything.
         const dashboardsTemplate = this.$$('#dashboards-template');
         const onDomChange = () => {
           // This will trigger an observer that kicks off everything.
-          const dashboardContainersStamped = {};
-          for (const container of this.querySelectorAll('.dashboard-container')) {
-            dashboardContainersStamped[container.dataset.dashboard] = true;
-          }
-          this._dashboardContainersStamped = dashboardContainersStamped;
+          this._dashboardContainersStamped = true;
         };
         dashboardsTemplate.addEventListener(
           'dom-change', onDomChange, /*useCapture=*/false);
 
-        this._reloadData();
+        tf_backend.fetchRuns();
+        this._fetchWindowProperties();
+        this._fetchLogdir();
+        this._fetchActiveDashboards();
         this._lastReloadTime = new Date().toString();
       },
 
-      _computeActiveDashboard() {
-        return this._dashboardData
-            .map((d) => d.plugin)
-            .filter((dashboardName) => {
-                // TODO(stephanwlee): Remove boolean code path when releasing
-                // 2.0.
-                // PluginsListing can be an object whose key is name of the
-                // plugin and value is a boolean indicating whether if it is
-                // enabled. This is deprecated but we will maintain backwards
-                // compatibility for some time.
-                const maybeMetadata = this._pluginsListing[dashboardName];
-                if (typeof maybeMetadata === 'boolean') return maybeMetadata;
-                return maybeMetadata && maybeMetadata.enabled;
-            });
+      _fetchLogdir() {
+        const url = tf_backend.getRouter().logdir();
+        return this._requestManager.request(url).then(result => {
+          this._logdir = result.logdir;
+        });
       },
 
-      /**
-       * @return {!Object<string, !DashboardDatum>}
-       */
-      _computeDashboardRegistry(pluginsListing) {
-        const registry = {};
-        for (const [name, legacyMetadata] of Object.entries(
-          tf_tensorboard.dashboardRegistry,
-        )) {
-          registry[name] = {
-            plugin: legacyMetadata.plugin,
-            loadingMechanism: {
-              type: 'CUSTOM_ELEMENT',
-              elementName: legacyMetadata.elementName,
-            },
-            tabName: legacyMetadata.tabName,
-            disableReload: legacyMetadata.isReloadDisabled || false,
-            removeDom: legacyMetadata.removeDom || false,
-          };
-        }
-        if (pluginsListing != null) {
-          for (const [name, backendMetadata] of Object.entries(pluginsListing)) {
-            if (typeof backendMetadata === 'boolean') {
-              // Legacy backend (prior to #2257). No metadata to speak of.
-              continue;
-            }
-            let loadingMechanism;
-            switch (backendMetadata.loading_mechanism.type) {
-              case 'NONE':
-                // Legacy backend plugin.
-                if (registry[name] == null) {
-                  console.warn(
-                    'Plugin has no loading mechanism and no baked-in registry entry: %s',
-                    name,
-                  );
-                }
-                continue;
-              case 'CUSTOM_ELEMENT':
-                loadingMechanism = {
-                  type: 'CUSTOM_ELEMENT',
-                  elementName: backendMetadata.loading_mechanism.element_name,
-                };
-                break;
-              case 'IFRAME':
-                loadingMechanism = {
-                  type: 'IFRAME',
-                  modulePath: backendMetadata.loading_mechanism.module_path,
-                };
-                break;
-              default:
-                console.warn(
-                  'Unknown loading mechanism for plugin %s: %s',
-                  name,
-                  backendMetadata.loading_mechanism,
-                );
-                continue;
-            }
-            if (loadingMechanism == null) {
-              console.error(
-                'Invariant violation: loadingMechanism is %s for %s',
-                loadingMechanism,
-                name,
-              );
-            }
-            registry[name] = {
-              plugin: name,
-              loadingMechanism: loadingMechanism,
-              tabName: backendMetadata.tab_name,
-              disableReload: backendMetadata.disable_reload,
-              removeDom: backendMetadata.remove_dom,
-            };
-          }
-        }
-
-        // Reorder to list all values from the `/data/plugins_listing`
-        // response first and in their listed order.
-        const orderedRegistry = {};
-        for (const plugin of Object.keys(pluginsListing)) {
-          if (registry[plugin]) {
-            orderedRegistry[plugin] = registry[plugin];
-          }
-        }
-        Object.assign(orderedRegistry, registry);
-        return orderedRegistry;
-      },
-
-      _computeDashboardData(dashboardRegistry) {
-        return Object.values(dashboardRegistry);
-      },
-
-      _fetchPluginsListing() {
+      _fetchActiveDashboards() {
         this._canceller.cancelAll();
-        const updatePluginsListing = this._canceller.cancellable(result => {
+        const updateActiveDashboards = this._canceller.cancellable(result => {
           if (result.cancelled) {
             return;
           }
-          this._pluginsListing = result.value;
+          const activePlugins = result.value;
+          this._activeDashboards = this._dashboardData.map(
+              d => d.plugin).filter(p => activePlugins[p]);
           this._activeDashboardsLoadState = tf_tensorboard.ActiveDashboardsLoadState.LOADED;
         });
         const onFailure = () => {
           if (this._activeDashboardsLoadState
-              === tf_tensorboard.ActiveDashboardsLoadState.NOT_LOADED) {
+              === ActiveDashboardsLoadState.NOT_LOADED) {
             this._activeDashboardsLoadState = tf_tensorboard.ActiveDashboardsLoadState.FAILED;
           } else {
             console.warn(
@@ -995,7 +704,16 @@ limitations under the License.
         };
         return this._requestManager
           .request(tf_backend.getRouter().pluginsListing())
-          .then(updatePluginsListing, onFailure);
+          .then(updateActiveDashboards, onFailure);
+      },
+
+      _fetchWindowProperties() {
+        const url = tf_backend.getRouter().windowProperties();
+        return this._requestManager.request(url).then(result => {
+          if (result.window_title) {
+            window.document.title = result.window_title;
+          }
+        });
       },
 
       _computeActiveDashboardsNotLoaded(state) {
@@ -1012,8 +730,9 @@ limitations under the License.
           && activeDashboards.length === 0
           && selectedDashboard == null);
       },
-      _computeShowNoSuchDashboardMessage(loaded, registry, selectedDashboard) {
-        return loaded && !!selectedDashboard && registry[selectedDashboard] == null;
+      _computeShowNoSuchDashboardMessage(dashboards, selectedDashboard) {
+        return !!selectedDashboard &&
+               !dashboards.some(d => d.plugin === selectedDashboard);
       },
 
       _updateRouter(router) {
@@ -1027,36 +746,17 @@ limitations under the License.
       },
 
       reload() {
-        if (this._isReloadDisabled) return;
-        this._reloadData().then(() => {
+        if (this._isReloadDisabled) {
+          return;
+        }
+        this._fetchLogdir();
+        Promise.all([this._fetchActiveDashboards(), tf_backend.fetchRuns()]).then(() => {
           const dashboard = this._selectedDashboardComponent();
-          if (dashboard && dashboard.reload) dashboard.reload();
+          if (dashboard) {
+            dashboard.reload();
+          }
         });
         this._lastReloadTime = new Date().toString();
-      },
-
-      _reloadData() {
-        this._refreshing = true;
-        return Promise.all([
-          this._fetchPluginsListing(),
-          tf_backend.environmentStore.refresh(),
-          tf_backend.runsStore.refresh(),
-          tf_backend.experimentsStore.refresh(),
-        ]).then(() => {
-          this._lastReloadTimeShort = new Date().toLocaleDateString(undefined, {
-            month: 'long',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric',
-          });
-        }).finally(() => {
-          this._refreshing = false;
-        });
-      },
-
-      _getDataRefreshingClass() {
-        return this._refreshing ? 'refreshing' : ''
       },
 
       openSettings() {

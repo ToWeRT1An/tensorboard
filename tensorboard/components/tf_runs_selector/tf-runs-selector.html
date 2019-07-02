@@ -34,9 +34,15 @@ Properties out:
 -->
 <dom-module id="tf-runs-selector">
   <template>
-    <paper-dialog with-backdrop id="data-location-dialog">
-      <h2>Data Location</h2>
-      <div inner-h-t-m-l="{{_breakString(dataLocation)}}"></div>
+    <div id="plumbing">
+      <tf-color-scale
+        runs="[[runs]]"
+        out-color-scale="{{colorScale}}"
+      ></tf-color-scale>
+    </div>
+    <paper-dialog with-backdrop id="logdir-dialog">
+      <h2>logdir</h2>
+      <div inner-h-t-m-l="{{_breakString(logdir)}}"></div>
     </paper-dialog>
     <div id="top-text">
       <h3 id="tooltip-help" class="tooltip-container">Runs</h3>
@@ -44,10 +50,8 @@ Properties out:
     <tf-multi-checkbox
       id="multiCheckbox"
       names="[[runs]]"
-      selection-state="{{runSelectionState}}"
       out-selected="{{selectedRuns}}"
-      regex="{{regexInput}}"
-      coloring="[[coloring]]"
+      color-scale="[[colorScale]]"
     ></tf-multi-checkbox>
     <paper-button
       class="x-button"
@@ -58,23 +62,23 @@ Properties out:
     </paper-button>
     <template
       is="dom-if"
-      if="[[dataLocation]]">
-      <div id="data-location">
-        <span id="clipped-dataLocation" inner-h-t-m-l="[[_clippedDataLocation]]"></span><!--
+      if="[[logdir]]">
+      <div id="logdir">
+        <span id="clipped-logdir" inner-h-t-m-l="[[_clippedLogdir]]"></span><!--
           We use HTML comments to remove spaces before the ellipsis.
         --><template
                      is="dom-if"
-                     if="[[_shouldShowExpandDataLocationButton(dataLocation, _dataLocationClipLength)]]"><!--
-          --><a href="" on-click="_openDataLocationDialog">…</a>
+                     if="[[_shouldShowExpandLogdirButton(logdir, _logdirClipLength)]]"><!--
+          --><a href="" on-click="_openLogdirDialog">…</a>
         </template>
       </div>
     </template>
     <style>
       :host {
-        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         padding-bottom: 10px;
+        box-sizing: border-box;
       }
       #top-text {
         width: 100%;
@@ -88,7 +92,6 @@ Properties out:
         display: flex;
         flex-grow: 1;
         flex-shrink: 1;
-        overflow: hidden;
       }
       .x-button {
         font-size: 13px;
@@ -105,7 +108,7 @@ Properties out:
       paper-button {
         margin-left: 0;
       }
-      #data-location {
+      #logdir {
         color: var(--tb-ui-dark-accent);
         font-size: 13px;
         margin: 5px 0 0 0;
@@ -117,58 +120,38 @@ Properties out:
   Polymer({
     is: "tf-runs-selector",
     properties: {
-      runSelectionState: {
-        type: Object,
-        observer: '_storeRunSelectionState',
-        value: tf_storage.getObjectInitializer('runSelectionState', {defaultValue: {}}),
-      },
-      regexInput: {
-        type: String,
-        value:
-            tf_storage.getStringInitializer('regexInput', {defaultValue: ''}),
-        observer: '_regexObserver',
-      },
-      selectedRuns: {
-        type: Array,
-        notify: true,
-      },
+      selectedRuns: {type: Array, notify: true},
       // runs: an array of strings, representing the run names that may be chosen
       runs: Array,
-      dataLocation: {
+      logdir: {
         type: String,
         notify: true,
       },
-      // This is the potentially clipped portion of the dataLocation we show at the bottom of the sidebar.
-      _clippedDataLocation: {
+      // This is the potentially clipped portion of the logdir we show at the bottom of the sidebar.
+      _clippedLogdir: {
         type: String,
-        computed: '_getClippedDataLocation(dataLocation, _dataLocationClipLength)',
+        computed: '_getClippedLogdir(logdir, _logdirClipLength)',
       },
-      _dataLocationClipLength: {
+      _logdirClipLength: {
         type: Number,
         value: 250,
         readOnly: true,
       },
-      coloring: {
-        type: Object,
-        value: {
-          getColor: tf_color_scale.runsColorScale,
-        },
-      },
     },
-    attached() {
-      this._runStoreListener = tf_backend.runsStore.addListener(() => {
-        this.set('runs', tf_backend.runsStore.getRuns());
-      });
-      this.set('runs', tf_backend.runsStore.getRuns());
+    ready: function() {
+      var updateRuns = function() {
+        this.set("runs", tf_backend.getRuns());
+      }.bind(this);
+      tf_backend.addListener(updateRuns);
+      updateRuns();
 
-      this._envStoreListener = tf_backend.environmentStore.addListener(() => {
-        this.set('dataLocation', tf_backend.environmentStore.getDataLocation());
+      var requestManager = new tf_backend.RequestManager();
+      requestManager.request(tf_backend.getRouter().logdir()).then(logdirObject => {
+        this.set('logdir', logdirObject.logdir);
+      }).catch(e => {
+        // Fetching the logdir failed. Prevent the exception from logging to
+        // console. The console already logs a 404 network event.
       });
-      this.set('dataLocation', tf_backend.environmentStore.getDataLocation());
-    },
-    detached() {
-      tf_backend.runsStore.removeListenerByKey(this._runStoreListener);
-      tf_backend.environmentStore.removeListenerByKey(this._envStoreListener);
     },
     _toggleAll: function() {
       this.$.multiCheckbox.toggleAll();
@@ -177,31 +160,27 @@ Properties out:
     _breakString: function(originalString) {
       return originalString.replace(/([\/=\-_,])/g, "$1<wbr>");
     },
-    _getClippedDataLocation: function(dataLocation, dataLocationClipLength) {
-      if (dataLocation === undefined) {
-        // The dataLocation has not been set yet.
+    _getClippedLogdir: function(logdir, logdirClipLength) {
+      if (logdir === undefined) {
+        // The logdir has not been set yet.
         return undefined;
       }
 
-      if (dataLocation.length > dataLocationClipLength) {
-        // Clip the dataLocation to avoid blocking the runs selector. Let the
-        // user view a more full version of the dataLocation.
-        return this._breakString(dataLocation.substring(0, dataLocationClipLength));
+      if (logdir.length > logdirClipLength) {
+        // Clip the logdir to avoid blocking the runs selector. Let the user view a more full
+        // version of the logdir.
+        return this._breakString(logdir.substring(0, logdirClipLength));
       } else {
-        return this._breakString(dataLocation);
+        return this._breakString(logdir);
       }
     },
-    _openDataLocationDialog: function(event) {
+    _openLogdirDialog: function(event) {
       event.preventDefault();
-      this.$$('#data-location-dialog').open();
+      this.$$('#logdir-dialog').open();
     },
-    _shouldShowExpandDataLocationButton(dataLocation, _dataLocationClipLength) {
-      return dataLocation && dataLocation.length > _dataLocationClipLength;
+    _shouldShowExpandLogdirButton(logdir, _logdirClipLength) {
+      return logdir && logdir.length > _logdirClipLength;
     },
-    _storeRunSelectionState:
-        tf_storage.getObjectObserver('runSelectionState', {defaultValue: {}}),
-    _regexObserver:
-        tf_storage.getStringObserver('regexInput', {defaultValue: ''}),
   });
   </script>
 </dom-module>
