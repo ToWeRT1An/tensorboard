@@ -1,4 +1,4 @@
-# Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Histogram summaries and TensorFlow operations to create them.
+"""Histogram summaries and TensorFlow operations to create them, V2 versions.
 
 A histogram summary stores a list of buckets. Each bucket is encoded as
 a triple `[left_edge, right_edge, count]`. Thus, a full histogram is
@@ -23,9 +23,6 @@ like 30. There are two edge cases: if there is no data, then there are
 no buckets (the shape is `[0, 3]`); and if there is data but all points
 have the same value, then there is one bucket whose left and right
 endpoints are the same (the shape is `[1, 3]`).
-
-NOTE: This module is in beta, and its API is subject to change, but the
-data that it stores to disk will be supported forever.
 """
 
 from __future__ import absolute_import
@@ -34,13 +31,52 @@ from __future__ import print_function
 
 import numpy as np
 
+from tensorboard.compat import tf2 as tf
+from tensorboard.compat.proto import summary_pb2
 from tensorboard.plugins.histogram import metadata
-from tensorboard.plugins.histogram import summary_v2
+from tensorboard.util import tensor_util
 
 
-# Export V2 versions.
-histogram = summary_v2.histogram
-histogram_pb = summary_v2.histogram_pb
+DEFAULT_BUCKET_COUNT = 30
+
+
+def histogram(name, data, step=None, buckets=None, description=None):
+  """Write a histogram summary.
+
+  Arguments:
+    name: A name for this summary. The summary tag used for TensorBoard will
+      be this name prefixed by any active name scopes.
+    data: A `Tensor` of any shape. Must be castable to `float64`.
+    step: Explicit `int64`-castable monotonic step value for this summary. If
+      omitted, this defaults to `tf.summary.experimental.get_step()`, which must
+      not be None.
+    buckets: Optional positive `int`. The output will have this
+      many buckets, except in two edge cases. If there is no data, then
+      there are no buckets. If there is data but all points have the
+      same value, then there is one bucket whose left and right
+      endpoints are the same.
+    description: Optional long-form description for this summary, as a
+      constant `str`. Markdown is supported. Defaults to empty.
+
+  Returns:
+    True on success, or false if no summary was emitted because no default
+    summary writer was available.
+
+  Raises:
+    ValueError: if a default writer exists, but no step was provided and
+      `tf.summary.experimental.get_step()` is None.
+  """
+  summary_metadata = metadata.create_summary_metadata(
+      display_name=None, description=description)
+  # TODO(https://github.com/tensorflow/tensorboard/issues/2109): remove fallback
+  summary_scope = (
+      getattr(tf.summary.experimental, 'summary_scope', None) or
+      tf.summary.summary_scope)
+  with summary_scope(
+      name, 'histogram_summary', values=[data, buckets, step]) as (tag, _):
+    tensor = _buckets(data, bucket_count=buckets)
+    return tf.summary.write(
+        tag=tag, tensor=tensor, step=step, metadata=summary_metadata)
 
 
 def _buckets(data, bucket_count=None):
@@ -54,13 +90,11 @@ def _buckets(data, bucket_count=None):
     a triple `[left_edge, right_edge, count]` for a single bucket.
     The value of `k` is either `bucket_count` or `1` or `0`.
   """
-  # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
-  import tensorflow.compat.v1 as tf
   if bucket_count is None:
-    bucket_count = summary_v2.DEFAULT_BUCKET_COUNT
-  with tf.name_scope('buckets', values=[data, bucket_count]), \
-       tf.control_dependencies([tf.assert_scalar(bucket_count),
-                                tf.assert_type(bucket_count, tf.int32)]):
+    bucket_count = DEFAULT_BUCKET_COUNT
+  with tf.name_scope('buckets'):
+    tf.debugging.assert_scalar(bucket_count)
+    tf.debugging.assert_type(bucket_count, tf.int32)
     data = tf.reshape(data, shape=[-1])  # flatten
     data = tf.cast(data, tf.float64)
     is_empty = tf.equal(tf.size(input=data), 0)
@@ -74,20 +108,23 @@ def _buckets(data, bucket_count=None):
       range_ = max_ - min_
       is_singular = tf.equal(range_, 0)
 
-      def when_nonsingular():#这个函数将输入的值封装到bucket里面。以后需要该这个函数
+      def when_nonsingular():
         bucket_width = range_ / tf.cast(bucket_count, tf.float64)
         offsets = data - min_
         bucket_indices = tf.cast(tf.floor(offsets / bucket_width),
-                                 dtype=tf.int32)#将连续值向量映射到对应的区间。
-        clamped_indices = tf.minimum(bucket_indices, bucket_count - 1)#index不能超过bucket数量
-        one_hots = tf.one_hot(clamped_indices, depth=bucket_count)#对每个indecx生成一个onehot向量
+                                 dtype=tf.int32)
+        clamped_indices = tf.minimum(bucket_indices, bucket_count - 1)
+        one_hots = tf.one_hot(clamped_indices, depth=bucket_count)
         bucket_counts = tf.cast(tf.reduce_sum(input_tensor=one_hots, axis=0),
-                                dtype=tf.float64)#每个bucket里面有多少个
+                                dtype=tf.float64)
         edges = tf.linspace(min_, max_, bucket_count + 1)
+        # Ensure edges[-1] == max_, which TF's linspace implementation does not
+        # do, leaving it subject to the whim of floating point rounding error.
+        edges = tf.concat([edges[:-1], [max_]], 0)
         left_edges = edges[:-1]
         right_edges = edges[1:]
         return tf.transpose(a=tf.stack(
-            [left_edges, right_edges, bucket_counts]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
+            [left_edges, right_edges, bucket_counts]))
 
       def when_singular():
         center = min_
@@ -102,74 +139,25 @@ def _buckets(data, bucket_count=None):
     return tf.cond(is_empty, when_empty, when_nonempty)
 
 
-def op(name,
-       data,
-       bucket_count=None,
-       display_name=None,
-       description=None,
-       collections=None):
-  """Create a legacy histogram summary op.
+def histogram_pb(tag, data, buckets=None, description=None):
+  """Create a histogram summary protobuf.
 
   Arguments:
-    name: A unique name for the generated summary node.
-    data: A `Tensor` of any shape. Must be castable to `float64`.
-    bucket_count: Optional positive `int`. The output will have this
-      many buckets, except in two edge cases. If there is no data, then
-      there are no buckets. If there is data but all points have the
-      same value, then there is one bucket whose left and right
-      endpoints are the same.
-    display_name: Optional name for this summary in TensorBoard, as a
-      constant `str`. Defaults to `name`.
-    description: Optional long-form description for this summary, as a
-      constant `str`. Markdown is supported. Defaults to empty.
-    collections: Optional list of graph collections keys. The new
-      summary op is added to these collections. Defaults to
-      `[Graph Keys.SUMMARIES]`.
-
-  Returns:
-    A TensorFlow summary op.
-  """
-  # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
-  import tensorflow.compat.v1 as tf
-
-  if display_name is None:
-    display_name = name
-  summary_metadata = metadata.create_summary_metadata(
-      display_name=display_name, description=description)
-  with tf.name_scope(name):
-    tensor = _buckets(data, bucket_count=bucket_count)
-    return tf.summary.tensor_summary(name='histogram_summary',
-                                     tensor=tensor,
-                                     collections=collections,
-                                     summary_metadata=summary_metadata)
-
-
-def pb(name, data, bucket_count=None, display_name=None, description=None):
-  """Create a legacy histogram summary protobuf.
-
-  Arguments:
-    name: A unique name for the generated summary, including any desired
-      name scopes.
+    tag: String tag for the summary.
     data: A `np.array` or array-like form of any shape. Must have type
       castable to `float`.
-    bucket_count: Optional positive `int`. The output will have this
+    buckets: Optional positive `int`. The output will have this
       many buckets, except in two edge cases. If there is no data, then
       there are no buckets. If there is data but all points have the
       same value, then there is one bucket whose left and right
       endpoints are the same.
-    display_name: Optional name for this summary in TensorBoard, as a
-      `str`. Defaults to `name`.
     description: Optional long-form description for this summary, as a
       `str`. Markdown is supported. Defaults to empty.
 
   Returns:
-    A `tf.Summary` protobuf object.
+    A `summary_pb2.Summary` protobuf object.
   """
-  # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
-  import tensorflow.compat.v1 as tf
-
-  if bucket_count is None:
-    bucket_count = summary_v2.DEFAULT_BUCKET_COUNT
+  bucket_count = DEFAULT_BUCKET_COUNT if buckets is None else buckets
   data = np.array(data).flatten().astype(float)
   if data.size == 0:
     buckets = np.array([]).reshape((0, 3))
@@ -194,17 +182,12 @@ def pb(name, data, bucket_count=None, display_name=None, description=None):
       left_edges = edges[:-1]
       right_edges = edges[1:]
       buckets = np.array([left_edges, right_edges, bucket_counts]).transpose()
-  tensor = tf.make_tensor_proto(buckets, dtype=tf.float64)#dtype是float，那么需要查询bucketcounts怎么绘制，是否需要int
+  tensor = tensor_util.make_tensor_proto(buckets, dtype=np.float64)
 
-  if display_name is None:
-    display_name = name
   summary_metadata = metadata.create_summary_metadata(
-      display_name=display_name, description=description)
-  tf_summary_metadata = tf.SummaryMetadata.FromString(
-      summary_metadata.SerializeToString())
-
-  summary = tf.Summary()
-  summary.value.add(tag='%s/histogram_summary' % name,
-                    metadata=tf_summary_metadata,
+      display_name=None, description=description)
+  summary = summary_pb2.Summary()
+  summary.value.add(tag=tag,
+                    metadata=summary_metadata,
                     tensor=tensor)
   return summary
