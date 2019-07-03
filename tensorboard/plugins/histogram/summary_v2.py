@@ -109,31 +109,20 @@ def _buckets(data, bucket_count=None):
       is_singular = tf.equal(range_, 0)
 
       def when_nonsingular():
-        bucket_width = range_ / tf.cast(bucket_count, tf.float64)
-        offsets = data - min_
-        bucket_indices = tf.cast(tf.floor(offsets / bucket_width),
-                                 dtype=tf.int32)
-        clamped_indices = tf.minimum(bucket_indices, bucket_count - 1)
-        one_hots = tf.one_hot(clamped_indices, depth=bucket_count)
-        bucket_counts = tf.cast(tf.reduce_sum(input_tensor=one_hots, axis=0),
-                                dtype=tf.float64)
-        edges = tf.linspace(min_, max_, bucket_count + 1)
-        # Ensure edges[-1] == max_, which TF's linspace implementation does not
-        # do, leaving it subject to the whim of floating point rounding error.
-        edges = tf.concat([edges[:-1], [max_]], 0)
-        left_edges = edges[:-1]
-        right_edges = edges[1:]
+        bucket_num = tf.minimum(bucket_count,data.size()[0])
+
+        left_edges = tf.linspace(0,bucket_num-1,bucket_num)
+        right_edges = tf.linspace(1,bucket_num,bucket_num)
         return tf.transpose(a=tf.stack(
-            [left_edges, right_edges, bucket_counts]))
+            [left_edges, right_edges, data[0:bucket_num]]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
 
       def when_singular():
-        center = min_
-        bucket_starts = tf.stack([center - 0.5])
-        bucket_ends = tf.stack([center + 0.5])
-        bucket_counts = tf.stack([tf.cast(tf.size(input=data), tf.float64)])
-        return tf.transpose(
-            a=tf.stack([bucket_starts, bucket_ends, bucket_counts]))
+        bucket_num = tf.minimum(bucket_count,data.size()[0])
 
+        left_edges = tf.linspace(0,bucket_num-1,bucket_num)
+        right_edges = tf.linspace(1,bucket_num,bucket_num)
+        return tf.transpose(a=tf.stack(
+            [left_edges, right_edges, data[0:bucket_num]]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
       return tf.cond(is_singular, when_singular, when_nonsingular)
 
     return tf.cond(is_empty, when_empty, when_nonempty)
@@ -165,23 +154,11 @@ def histogram_pb(tag, data, buckets=None, description=None):
     min_ = np.min(data)
     max_ = np.max(data)
     range_ = max_ - min_
-    if range_ == 0:
-      center = min_
-      buckets = np.array([[center - 0.5, center + 0.5, float(data.size)]])
-    else:
-      bucket_width = range_ / bucket_count
-      offsets = data - min_
-      bucket_indices = np.floor(offsets / bucket_width).astype(int)
-      clamped_indices = np.minimum(bucket_indices, bucket_count - 1)
-      one_hots = (np.array([clamped_indices]).transpose()
-                  == np.arange(0, bucket_count))  # broadcast
-      assert one_hots.shape == (data.size, bucket_count), (
-          one_hots.shape, (data.size, bucket_count))
-      bucket_counts = np.sum(one_hots, axis=0)
-      edges = np.linspace(min_, max_, bucket_count + 1)
-      left_edges = edges[:-1]
-      right_edges = edges[1:]
-      buckets = np.array([left_edges, right_edges, bucket_counts]).transpose()
+
+    bucket_num = tf.minimum(bucket_count,data.size()[0])
+    left_edges = tf.linspace(0,bucket_num-1,bucket_num)
+    right_edges = tf.linspace(1,bucket_num,bucket_num)
+    buckets = np.array([left_edges, right_edges, data]).transpose()
   tensor = tensor_util.make_tensor_proto(buckets, dtype=np.float64)
 
   summary_metadata = metadata.create_summary_metadata(
