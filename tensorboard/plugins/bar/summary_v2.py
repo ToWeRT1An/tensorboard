@@ -114,7 +114,7 @@ def _buckets(data, bucket_count=None):
         left_edges = tf.linspace(0,bucket_num-1,bucket_num)
         right_edges = tf.linspace(1,bucket_num,bucket_num)
         return tf.transpose(a=tf.stack(
-            [left_edges, right_edges, data]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
+            [left_edges, right_edges, data[0:bucket_num]]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
 
       def when_singular():
         bucket_num = tf.minimum(bucket_count,data.size()[0])
@@ -122,13 +122,13 @@ def _buckets(data, bucket_count=None):
         left_edges = tf.linspace(0,bucket_num-1,bucket_num)
         right_edges = tf.linspace(1,bucket_num,bucket_num)
         return tf.transpose(a=tf.stack(
-            [left_edges, right_edges, data]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
+            [left_edges, right_edges, data[0:bucket_num]]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
       return tf.cond(is_singular, when_singular, when_nonsingular)
 
     return tf.cond(is_empty, when_empty, when_nonempty)
 
 
-def histogram_pb(tag, data, buckets=None, description=None):
+def bar_pb(tag, data, buckets=None, description=None):
   """Create a histogram summary protobuf.
 
   Arguments:

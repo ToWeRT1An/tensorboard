@@ -21,7 +21,7 @@ package tensorboard;
 // module will include `SummaryMetadata` whose `plugin_data` field has
 // as `content` a binary string that is the encoding of a
 // `HistogramPluginData` proto.
-message HistogramPluginData {
+message BarPluginData {
   // Version `0` is the only supported version.
   int32 version = 1;
 }

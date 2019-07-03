@@ -80,7 +80,7 @@ def _buckets(data, bucket_count=None):
         left_edges = tf.linspace(0,bucket_num-1,bucket_num)
         right_edges = tf.linspace(1,bucket_num,bucket_num)
         return tf.transpose(a=tf.stack(
-            [left_edges, right_edges, data]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
+            [left_edges, right_edges, data[0:bucket_num]]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
 
       def when_singular():
         bucket_num = tf.minimum(bucket_count,data.size()[0])
@@ -88,7 +88,7 @@ def _buckets(data, bucket_count=None):
         left_edges = tf.linspace(0,bucket_num-1,bucket_num)
         right_edges = tf.linspace(1,bucket_num,bucket_num)
         return tf.transpose(a=tf.stack(
-            [left_edges, right_edges, data]))
+            [left_edges, right_edges, data[0:bucket_num]]))
 
       return tf.cond(is_singular, when_singular, when_nonsingular)
 
@@ -174,7 +174,7 @@ def pb(name, data, bucket_count=None, display_name=None, description=None):
     bucket_num = tf.minimum(bucket_count,data.size()[0])
     left_edges = tf.linspace(0,bucket_num-1,bucket_num)
     right_edges = tf.linspace(1,bucket_num,bucket_num)
-    buckets = np.array([left_edges, right_edges, data]).transpose()
+    buckets = np.array([left_edges, right_edges, data[0:bucket_num]]).transpose()
   tensor = tf.make_tensor_proto(buckets, dtype=tf.float64)#dtype是float，那么需要查询bucketcounts怎么绘制，是否需要int
 
   if display_name is None:

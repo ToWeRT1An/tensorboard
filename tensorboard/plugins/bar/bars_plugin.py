@@ -37,7 +37,7 @@ from tensorboard.plugins.histogram import metadata
 from tensorboard.util import tensor_util
 
 
-class HistogramsPlugin(base_plugin.TBPlugin):
+class BarsPlugin(base_plugin.TBPlugin):
   """Histograms Plugin for TensorBoard.
 
   This supports both old-style summaries (created with TensorFlow ops
@@ -63,7 +63,7 @@ class HistogramsPlugin(base_plugin.TBPlugin):
 
   def get_plugin_apps(self):
     return {
-        '/histograms': self.histograms_route,
+        '/bars': self.bars_route,
         '/tags': self.tags_route,
     }
 
@@ -129,7 +129,7 @@ class HistogramsPlugin(base_plugin.TBPlugin):
         element_name='tf-histogram-dashboard',
     )
 
-  def histograms_impl(self, tag, run, downsample_to=None):
+  def bars_impl(self, tag, run, downsample_to=None):
     """Result of the form `(body, mime_type)`, or `ValueError`.
 
     At most `downsample_to` events will be returned. If this value is
@@ -154,7 +154,7 @@ class HistogramsPlugin(base_plugin.TBPlugin):
           {'run': run, 'tag': tag, 'plugin': metadata.PLUGIN_NAME})
       row = cursor.fetchone()
       if not row:
-        raise ValueError('No histogram tag %r for run %r' % (tag, run))
+        raise ValueError('No bar tag %r for run %r' % (tag, run))
       (tag_id,) = row
       # Fetch tensor values, optionally with linear-spaced sampling by step.
       # For steps ranging from s_min to s_max and sample size k, this query
@@ -198,7 +198,7 @@ class HistogramsPlugin(base_plugin.TBPlugin):
       try:
         tensor_events = self._multiplexer.Tensors(run, tag)
       except KeyError:
-        raise ValueError('No histogram tag %r for run %r' % (tag, run))
+        raise ValueError('No bar tag %r for run %r' % (tag, run))
       if downsample_to is not None and len(tensor_events) > downsample_to:
         rand_indices = random.Random(0).sample(
             six.moves.xrange(len(tensor_events)), downsample_to)
@@ -226,7 +226,7 @@ class HistogramsPlugin(base_plugin.TBPlugin):
     return http_util.Respond(request, index, 'application/json')
 
   @wrappers.Request.application
-  def histograms_route(self, request):
+  def bars_route(self, request):
     """Given a tag and single run, return array of histogram values."""
     tag = request.args.get('tag')
     run = request.args.get('run')
