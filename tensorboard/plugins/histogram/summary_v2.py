@@ -90,6 +90,7 @@ def _buckets(data, bucket_count=None):
     a triple `[left_edge, right_edge, count]` for a single bucket.
     The value of `k` is either `bucket_count` or `1` or `0`.
   """
+  print('in summary_v2 _buckets')
   if bucket_count is None:
     bucket_count = DEFAULT_BUCKET_COUNT
   with tf.name_scope('buckets'):
@@ -146,6 +147,7 @@ def histogram_pb(tag, data, buckets=None, description=None):
   Returns:
     A `summary_pb2.Summary` protobuf object.
   """
+  print('in summary_v2 histogram_pb')
   bucket_count = DEFAULT_BUCKET_COUNT if buckets is None else buckets
   data = np.array(data).flatten().astype(float)
   if data.size == 0:
@@ -158,7 +160,7 @@ def histogram_pb(tag, data, buckets=None, description=None):
     bucket_num = tf.minimum(bucket_count,data.size()[0])
     left_edges = tf.linspace(0,bucket_num-1,bucket_num)
     right_edges = tf.linspace(1,bucket_num,bucket_num)
-    buckets = np.array([left_edges, right_edges, data]).transpose()
+    buckets = np.array([left_edges, right_edges, data[0:bucket_num]]).transpose()
   tensor = tensor_util.make_tensor_proto(buckets, dtype=np.float64)
 
   summary_metadata = metadata.create_summary_metadata(

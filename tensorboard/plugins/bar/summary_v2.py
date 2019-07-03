@@ -158,7 +158,7 @@ def bar_pb(tag, data, buckets=None, description=None):
     bucket_num = tf.minimum(bucket_count,data.size()[0])
     left_edges = tf.linspace(0,bucket_num-1,bucket_num)
     right_edges = tf.linspace(1,bucket_num,bucket_num)
-    buckets = np.array([left_edges, right_edges, data]).transpose()
+    buckets = np.array([left_edges, right_edges, data[0:bucket_num]]).transpose()
   tensor = tensor_util.make_tensor_proto(buckets, dtype=np.float64)
 
   summary_metadata = metadata.create_summary_metadata(

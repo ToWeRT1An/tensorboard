@@ -55,6 +55,7 @@ def _buckets(data, bucket_count=None):
     The value of `k` is either `bucket_count` or `1` or `0`.
   """
   # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
+  print('in summary _buckets')
   import tensorflow.compat.v1 as tf
   if bucket_count is None:
     bucket_count = summary_v2.DEFAULT_BUCKET_COUNT
@@ -124,6 +125,7 @@ def op(name,
   # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
   import tensorflow.compat.v1 as tf
 
+
   if display_name is None:
     display_name = name
   summary_metadata = metadata.create_summary_metadata(
@@ -159,7 +161,7 @@ def pb(name, data, bucket_count=None, display_name=None, description=None):
   """
   # TODO(nickfelt): remove on-demand imports once dep situation is fixed.
   import tensorflow.compat.v1 as tf
-
+  print('in summary pb')
   if bucket_count is None:
     bucket_count = summary_v2.DEFAULT_BUCKET_COUNT
   data = np.array(data).flatten().astype(float)
