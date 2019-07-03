@@ -19,20 +19,20 @@ from __future__ import division
 from __future__ import print_function
 
 from tensorboard.compat.proto import summary_pb2
-from tensorboard.plugins.histogram import plugin_data_pb2
+from tensorboard.plugins.bar import plugin_data_pb2
 from tensorboard.util import tb_logging
 
 logger = tb_logging.get_logger()
 
-PLUGIN_NAME = 'histograms'
+PLUGIN_NAME = 'bars'
 
 # The most recent value for the `version` field of the
-# `HistogramPluginData` proto.
+# `barsPluginData` proto.
 PROTO_VERSION = 0
 
 
 def create_summary_metadata(display_name, description):
-  """Create a `summary_pb2.SummaryMetadata` proto for histogram plugin data.
+  """Create a `summary_pb2.SummaryMetadata` proto for bar plugin data.
 
   Returns:
     A `summary_pb2.SummaryMetadata` protobuf object.

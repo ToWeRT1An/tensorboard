@@ -34,13 +34,13 @@ from __future__ import print_function
 
 import numpy as np
 
-from tensorboard.plugins.histogram import metadata
-from tensorboard.plugins.histogram import summary_v2
+from tensorboard.plugins.bar import metadata
+from tensorboard.plugins.bar import summary_v2
 
 
 # Export V2 versions.
-histogram = summary_v2.histogram
-histogram_pb = summary_v2.histogram_pb
+bar = summary_v2.bar
+bar_pb = summary_v2.bar_pb
 
 
 def _buckets(data, bucket_count=None):
@@ -75,27 +75,20 @@ def _buckets(data, bucket_count=None):
       is_singular = tf.equal(range_, 0)
 
       def when_nonsingular():#这个函数将输入的值封装到bucket里面。以后需要该这个函数
-        bucket_width = range_ / tf.cast(bucket_count, tf.float64)
-        offsets = data - min_
-        bucket_indices = tf.cast(tf.floor(offsets / bucket_width),
-                                 dtype=tf.int32)#将连续值向量映射到对应的区间。
-        clamped_indices = tf.minimum(bucket_indices, bucket_count - 1)#index不能超过bucket数量
-        one_hots = tf.one_hot(clamped_indices, depth=bucket_count)#对每个indecx生成一个onehot向量
-        bucket_counts = tf.cast(tf.reduce_sum(input_tensor=one_hots, axis=0),
-                                dtype=tf.float64)#每个bucket里面有多少个
-        edges = tf.linspace(min_, max_, bucket_count + 1)
-        left_edges = edges[:-1]
-        right_edges = edges[1:]
+        bucket_num = tf.minimum(bucket_count,data.size()[0])
+
+        left_edges = tf.linspace(0,bucket_num-1,bucket_num)
+        right_edges = tf.linspace(1,bucket_num,bucket_num)
         return tf.transpose(a=tf.stack(
-            [left_edges, right_edges, bucket_counts]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
+            [left_edges, right_edges, data]))#stack是拼装矩阵。这里将这三个矩阵顺次拼装
 
       def when_singular():
-        center = min_
-        bucket_starts = tf.stack([center - 0.5])
-        bucket_ends = tf.stack([center + 0.5])
-        bucket_counts = tf.stack([tf.cast(tf.size(input=data), tf.float64)])
-        return tf.transpose(
-            a=tf.stack([bucket_starts, bucket_ends, bucket_counts]))
+        bucket_num = tf.minimum(bucket_count,data.size()[0])
+
+        left_edges = tf.linspace(0,bucket_num-1,bucket_num)
+        right_edges = tf.linspace(1,bucket_num,bucket_num)
+        return tf.transpose(a=tf.stack(
+            [left_edges, right_edges, data]))
 
       return tf.cond(is_singular, when_singular, when_nonsingular)
 
@@ -138,7 +131,7 @@ def op(name,
       display_name=display_name, description=description)
   with tf.name_scope(name):
     tensor = _buckets(data, bucket_count=bucket_count)
-    return tf.summary.tensor_summary(name='histogram_summary',
+    return tf.summary.tensor_summary(name='bar_summary',
                                      tensor=tensor,
                                      collections=collections,
                                      summary_metadata=summary_metadata)
@@ -177,23 +170,11 @@ def pb(name, data, bucket_count=None, display_name=None, description=None):
     min_ = np.min(data)
     max_ = np.max(data)
     range_ = max_ - min_
-    if range_ == 0:
-      center = min_
-      buckets = np.array([[center - 0.5, center + 0.5, float(data.size)]])
-    else:
-      bucket_width = range_ / bucket_count
-      offsets = data - min_
-      bucket_indices = np.floor(offsets / bucket_width).astype(int)
-      clamped_indices = np.minimum(bucket_indices, bucket_count - 1)
-      one_hots = (np.array([clamped_indices]).transpose()
-                  == np.arange(0, bucket_count))  # broadcast
-      assert one_hots.shape == (data.size, bucket_count), (
-          one_hots.shape, (data.size, bucket_count))
-      bucket_counts = np.sum(one_hots, axis=0)
-      edges = np.linspace(min_, max_, bucket_count + 1)
-      left_edges = edges[:-1]
-      right_edges = edges[1:]
-      buckets = np.array([left_edges, right_edges, bucket_counts]).transpose()
+
+    bucket_num = tf.minimum(bucket_count,data.size()[0])
+    left_edges = tf.linspace(0,bucket_num-1,bucket_num)
+    right_edges = tf.linspace(1,bucket_num,bucket_num)
+    buckets = np.array([left_edges, right_edges, data]).transpose()
   tensor = tf.make_tensor_proto(buckets, dtype=tf.float64)#dtype是float，那么需要查询bucketcounts怎么绘制，是否需要int
 
   if display_name is None:
@@ -204,7 +185,7 @@ def pb(name, data, bucket_count=None, display_name=None, description=None):
       summary_metadata.SerializeToString())
 
   summary = tf.Summary()
-  summary.value.add(tag='%s/histogram_summary' % name,
+  summary.value.add(tag='%s/bar_summary' % name,
                     metadata=tf_summary_metadata,
                     tensor=tensor)
   return summary
