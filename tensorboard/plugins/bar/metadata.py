@@ -37,7 +37,7 @@ def create_summary_metadata(display_name, description):
   Returns:
     A `summary_pb2.SummaryMetadata` protobuf object.
   """
-  content = plugin_data_pb2.HistogramPluginData(version=PROTO_VERSION)
+  content = plugin_data_pb2.BarPluginData(version=PROTO_VERSION)
   return summary_pb2.SummaryMetadata(
       display_name=display_name,
       summary_description=description,
@@ -54,15 +54,15 @@ def parse_plugin_metadata(content):
       corresponding to the histogram plugin.
 
   Returns:
-    A `HistogramPluginData` protobuf object.
+    A `BarPluginData` protobuf object.
   """
   if not isinstance(content, bytes):
     raise TypeError('Content type must be bytes')
   if content == b'{}':
     # Old-style JSON format. Equivalent to an all-default proto.
-    return plugin_data_pb2.HistogramPluginData()
+    return plugin_data_pb2.BarPluginData()
   else:
-    result = plugin_data_pb2.HistogramPluginData.FromString(content)
+    result = plugin_data_pb2.BarPluginData.FromString(content)
     if result.version == 0:
       return result
     else:

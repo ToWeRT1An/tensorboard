@@ -173,5 +173,6 @@ from tensorboard.summary.v2 import histogram
 from tensorboard.summary.v2 import image
 from tensorboard.summary.v2 import scalar
 from tensorboard.summary.v2 import text
+from tensorboard.summary.v2 import bar
 
 del absolute_import, division, print_function, tf, reexport_tf_summary
